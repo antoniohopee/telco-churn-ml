@@ -14,6 +14,7 @@ abbandonerà il servizio (`Churn Value`: 0 = rimasto, 1 = abbandonato).
 - Giada
 
 ## 🗂️ Struttura del progetto
+```
 telco-churn-ml/
 ├── data/
 │   ├── raw/          # Dataset originale — NON modificare
@@ -26,6 +27,7 @@ telco-churn-ml/
 ├── outputs/figures/  # Grafici salvati
 ├── presentation/     # Slide finali
 └── requirements.txt
+```
 ## ⚙️ Installazione
 
 ```bash
