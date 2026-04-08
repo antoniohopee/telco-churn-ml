@@ -24,7 +24,8 @@ telco-churn-ml/
 │   ├── preprocessing.py
 │   ├── visualization.py
 │   └── evaluation.py
-├── outputs/figures/  # Grafici salvati
+├── outputs/
+│   └──figures/       # Grafici salvati
 ├── presentation/     # Slide finali
 └── requirements.txt
 ```
