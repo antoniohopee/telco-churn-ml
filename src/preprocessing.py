@@ -60,3 +60,34 @@ def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     df['offer'] = df['offer'].fillna('No Offer')
     df['internet_type'] = df['internet_type'].fillna('No Internet')
     return df
+
+
+def detect_outliers_std(df: pd.DataFrame, columns: list, soglia: float = 3.0) -> pd.DataFrame:
+    """
+    Identifica gli outlier usando il metodo della deviazione standard.
+    Un valore è outlier se si trova a più di `soglia` deviazioni standard dalla media.
+    
+    Parameters:
+        df      : DataFrame pandas
+        columns : lista di colonne numeriche da analizzare
+        soglia  : numero di deviazioni standard (default: 3)
+    
+    Returns:
+        DataFrame con statistiche e conteggio outlier per ogni colonna
+    """
+    risultati = []
+    for col in columns:
+        media = df[col].mean()
+        std = df[col].std()
+        outliers = df[(df[col] < media - soglia * std) | 
+                      (df[col] > media + soglia * std)]
+        risultati.append({
+            'Variabile': col,
+            'Media': round(media, 2),
+            'Dev. Std.': round(std, 2),
+            'Limite inferiore': round(media - soglia * std, 2),
+            'Limite superiore': round(media + soglia * std, 2),
+            'N. Outlier': len(outliers),
+            '% Outlier': round(len(outliers) / len(df) * 100, 2)
+        })
+    return pd.DataFrame(risultati).sort_values('N. Outlier', ascending=False)
