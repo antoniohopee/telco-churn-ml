@@ -44,3 +44,44 @@ def plot_numeric_distributions(df, variables, target_col, save_path=None):
         print(f"✅ Grafico salvato in: {save_path}")
 
     plt.show()
+
+
+def plot_categorical_churn_rates(df, variables, target_col, save_path=None):
+    """
+    Visualizza il tasso di churn percentuale per le principali variabili categoriche.
+    Ogni subplot mostra un grafico a barre orizzontali ordinato per tasso decrescente.
+    """
+    n = len(variables)
+    fig, axes = plt.subplots(1, n, figsize=(5 * n, 5))
+
+    for ax, var in zip(axes, variables):
+        churn_rate = (
+            df.groupby(var)[target_col]
+            .mean()
+            .mul(100)
+            .round(1)
+            .sort_values(ascending=True)  # ascending per barh
+        )
+
+        bars = ax.barh(churn_rate.index, churn_rate.values, color='steelblue')
+
+        # Annotazione percentuale su ogni barra
+        for bar, val in zip(bars, churn_rate.values):
+            ax.text(
+                val + 0.5, bar.get_y() + bar.get_height() / 2,
+                f'{val}%', va='center', fontsize=9
+            )
+
+        ax.set_title(var.replace('_', ' ').title(), fontsize=12, fontweight='bold')
+        ax.set_xlabel('Churn Rate (%)')
+        ax.set_xlim(0, churn_rate.max() + 10)
+        ax.spines[['top', 'right']].set_visible(False)
+
+    plt.suptitle('Tasso di Churn per Variabile Categorica', fontsize=14, fontweight='bold', y=1.02)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Grafico salvato in: {save_path}")
+
+    plt.show()
