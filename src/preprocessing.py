@@ -91,3 +91,36 @@ def detect_outliers_std(df: pd.DataFrame, columns: list, soglia: float = 3.0) ->
             '% Outlier': round(len(outliers) / len(df) * 100, 2)
         })
     return pd.DataFrame(risultati).sort_values('N. Outlier', ascending=False)
+
+
+def detect_outliers_iqr(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+    """
+    Identifica gli outlier usando il metodo IQR (Interquartile Range).
+    Un valore è outlier se inferiore a Q1 - 1.5*IQR o superiore a Q3 + 1.5*IQR.
+
+    Parameters:
+        df      : DataFrame pandas
+        columns : lista di colonne numeriche da analizzare
+
+    Returns:
+        DataFrame con statistiche e conteggio outlier per ogni colonna
+    """
+    risultati = []
+    for col in columns:
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+        limite_inf = Q1 - 1.5 * IQR
+        limite_sup = Q3 + 1.5 * IQR
+        outliers = df[(df[col] < limite_inf) | (df[col] > limite_sup)]
+        risultati.append({
+            'Variabile': col,
+            'Q1': round(Q1, 2),
+            'Q3': round(Q3, 2),
+            'IQR': round(IQR, 2),
+            'Limite inferiore': round(limite_inf, 2),
+            'Limite superiore': round(limite_sup, 2),
+            'N. Outlier': len(outliers),
+            '% Outlier': round(len(outliers) / len(df) * 100, 2)
+        })
+    return pd.DataFrame(risultati).sort_values('N. Outlier', ascending=False)
