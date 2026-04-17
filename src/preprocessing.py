@@ -124,3 +124,34 @@ def detect_outliers_iqr(df: pd.DataFrame, columns: list) -> pd.DataFrame:
             '% Outlier': round(len(outliers) / len(df) * 100, 2)
         })
     return pd.DataFrame(risultati).sort_values('N. Outlier', ascending=False)
+
+
+## US 14: Come identificare e gestire gli outlier nei dati di churn
+
+def applica_isolation_forest(df, colonne_numeriche, contamination=0.05, random_state=42):
+    """
+    Applica Isolation Forest per rilevare outlier multidimensionali.
+
+    Parametri:
+        df: DataFrame pandas
+        colonne_numeriche: lista di colonne su cui applicare il modello
+        contamination: percentuale attesa di outlier (default 5%)
+        random_state: seed per riproducibilità
+
+    Restituisce:
+        df con colonna aggiuntiva 'outlier_iforest' (1=normale, -1=outlier)
+    """
+    from sklearn.ensemble import IsolationForest
+    from sklearn.preprocessing import StandardScaler
+
+    scaler = StandardScaler()
+    df_scaled = scaler.fit_transform(df[colonne_numeriche])
+
+    iso = IsolationForest(
+        n_estimators=100,
+        contamination=contamination,
+        random_state=random_state
+    )
+    df = df.copy()
+    df["outlier_iforest"] = iso.fit_predict(df_scaled)
+    return df
