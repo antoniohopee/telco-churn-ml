@@ -126,7 +126,9 @@ def detect_outliers_iqr(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     return pd.DataFrame(risultati).sort_values('N. Outlier', ascending=False)
 
 
-## US 14: Come identificare e gestire gli outlier nei dati di churn
+## US-14 · Isolation Forest
+
+
 
 def applica_isolation_forest(df, colonne_numeriche, contamination=0.05, random_state=42):
     """
@@ -155,3 +157,45 @@ def applica_isolation_forest(df, colonne_numeriche, contamination=0.05, random_s
     df = df.copy()
     df["outlier_iforest"] = iso.fit_predict(df_scaled)
     return df
+
+
+## US-10 · Rimozione variabili ridondanti (post correlazione)
+
+def drop_redundant_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Rimuove le variabili ridondanti identificate tramite analisi della correlazione (US-10).
+
+    Variabili rimosse:
+    - partner       → identica a married (correlazione 1.000)
+    - dependents    → ridondante con num_dependents (correlazione 0.888)
+    - total_charges → ridondante con total_revenue (correlazione 0.972)
+    """
+    return df.drop(columns=["partner", "dependents", "total_charges"])
+
+
+## US-15 · Preprocessing Pipeline
+
+def build_preprocessor(num_cols: list, cat_cols: list, binary_cols: list):
+    """
+    Costruisce un ColumnTransformer che applica:
+    - StandardScaler alle variabili numeriche continue
+    - OneHotEncoder alle variabili categoriche nominali
+    - passthrough alle variabili binarie (già 0/1)
+
+    Parameters:
+        num_cols    : lista di colonne numeriche continue
+        cat_cols    : lista di colonne categoriche nominali
+        binary_cols : lista di colonne binarie
+
+    Returns:
+        ColumnTransformer pronto per essere usato in una Pipeline sklearn
+    """
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+
+    preprocessor = ColumnTransformer(transformers=[
+        ("num", StandardScaler(), num_cols),
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat_cols),
+        ("bin", "passthrough", binary_cols),
+    ])
+    return preprocessor
