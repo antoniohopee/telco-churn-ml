@@ -1,0 +1,2214 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<title>Telco Churn — Presentazione</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script type="application/json" id="speaker-notes">
+[
+"Buongiorno. Oggi vi raccontiamo come abbiamo costruito un modello di Machine Learning per prevedere quali clienti di una compagnia telefonica stanno per abbandonare il servizio. Lavoriamo su un dataset reale di 7043 clienti californiani. Lo scopo non è tecnico: vogliamo mostrare COME si arriva a una decisione, dalle scelte sui dati fino al modello che funziona meglio. La presentazione dura circa quindici minuti, divisi in sei capitoli che vedete qui a destra. Partiamo dal problema.",
+
+"Il churn, in italiano abbandono o disdetta, è quando un cliente smette di usare un servizio. Per una compagnia telefonica è il problema numero uno, perché acquisire un nuovo cliente costa tra cinque e sette volte di più che mantenerne uno esistente. Nel nostro dataset, su 7043 clienti, oltre 1800 hanno abbandonato. Tradotto in termini di business: un quarto della base clienti se ne va. Trovare in anticipo CHI sta per andarsene significa poter intervenire — con una telefonata, uno sconto, un'offerta — prima che sia troppo tardi.",
+
+"Il nostro obiettivo è semplice da enunciare: dato un cliente, prevedere se abbandonerà o no. È un classico problema di classificazione binaria. L'output è una probabilità — questo cliente ha l'ottanta per cento di probabilità di andarsene — che l'azienda può tradurre in azione. Non vogliamo solo un numero accurato: vogliamo capire ANCHE perché un cliente è a rischio, così il marketing può agire in modo mirato.",
+
+"Una nota tecnica veloce ma importante. Le classi sono sbilanciate: settantatré per cento di clienti rimasti, ventisei per cento andati via. In questi casi l'accuratezza inganna. Un modello stupido che predice sempre 'rimasto' otterrebbe il settantatré per cento di accuratezza — sembra alto, ma è inutile, perché non identifica nessuno dei clienti a rischio. Per questo abbiamo usato come metrica il Macro F1-Score, che pesa equamente entrambe le classi. Ricordatevi questo numero: tutti i risultati che vedrete sono Macro F1.",
+
+"Veniamo ai dati. Il dataset di partenza ha 7043 righe — una per cliente — e 49 colonne con informazioni demografiche, contrattuali e di consumo. Ma non tutte queste 49 colonne sono utilizzabili. Anzi, partire da tutte sarebbe un errore grave. Nelle prossime slide vi spieghiamo perché ne abbiamo dovute eliminare quasi un terzo, prima ancora di iniziare ad addestrare un modello.",
+
+"Questo è il concetto più importante della metodologia, e lo spieghiamo con un'analogia. Immaginate di studiare per un esame e di avere già le risposte sotto gli occhi. Prendereste trenta. Ma il giorno dopo, all'esame vero, senza foglietto, non sapreste rispondere. Il data leakage è esattamente questo: il modello si allena vedendo informazioni che nella realtà non avrebbe. Sembra bravissimo in laboratorio e poi crolla in produzione. La nostra prima responsabilità è stata identificare ed eliminare queste informazioni 'dal futuro'.",
+
+"Ecco le cinque colonne tossiche che abbiamo eliminato. Churn è la risposta stessa — ovvio. Ma anche Churn Score, Churn Category e Churn Reason esistono solo DOPO che il cliente è andato via: sono compilate dall'azienda a posteriori. Customer Status idem: dice se il cliente è attivo, perso o nuovo. Usarle sarebbe come prevedere chi vincerà la partita guardando il risultato finale. Insieme a queste abbiamo rimosso colonne identificative — Customer ID, dati geografici, Country, State — che non aggiungono potere predittivo, e abbiamo discusso colonne 'grigie' come il Satisfaction Score, che abbiamo deciso di tenere perché è un'informazione disponibile prima dell'abbandono.",
+
+"Dopo la pulizia restano 7043 righe e una trentina di colonne utili. Nessun duplicato, qualche valore mancante che abbiamo gestito. Abbiamo poi diviso i dati in due parti: l'ottanta per cento per addestrare il modello, il venti per cento — circa 1409 clienti — che il modello non vedrà MAI in fase di allenamento. Sarà il nostro 'esame finale'. La divisione è stratificata, cioè la proporzione tra clienti rimasti e andati via è la stessa nei due gruppi. Questo evita che il test sia per caso più facile o più difficile dell'addestramento.",
+
+"Ora la domanda interessante: chi sono, davvero, i clienti che abbandonano? Abbiamo esplorato i dati incrociando ogni variabile con la colonna churn. Sono emersi tre profili netti. Nelle prossime slide vi mostriamo i grafici più parlanti.",
+
+"Il segnale più forte in assoluto è il tipo di contratto. I clienti con contratto mensile abbandonano a tassi vertiginosi — oltre il quaranta per cento. Quelli con contratto biennale, praticamente mai: meno del tre per cento. Ha senso: se non c'è vincolo, andarsene costa zero. Questa singola variabile, da sola, spiegherà più della metà della decisione del nostro modello migliore.",
+
+"Il secondo segnale è la durata della relazione. I clienti nuovi — quelli con tenure sotto i dodici mesi — abbandonano molto più spesso dei clienti storici. Dopo i quattro o cinque anni, il churn quasi sparisce. È una specie di legge della fedeltà: se sopravvivono ai primi mesi, restano per sempre. Implicazione di business immediata: l'onboarding e i primi sei mesi sono il momento critico in cui investire.",
+
+"Terzo profilo: il fattore costo. Chi paga di più al mese è più propenso ad andarsene, soprattutto quando il servizio non è percepito come adeguato. Tipico esempio: clienti con fibra ottica costosa, contratto mensile, e nessun servizio aggiuntivo come la sicurezza online. Sono clienti che pagano molto, non sono legati da un vincolo contrattuale, e sentono di non ricevere abbastanza valore. Sono il bersaglio numero uno per le campagne di retention.",
+
+"Prima di entrare nei modelli, una pulizia tecnica. Abbiamo trovato variabili ridondanti — coppie con correlazione vicina al cento per cento. Per esempio Partner e Married praticamente coincidevano, e Total Charges e Total Revenue erano sostanzialmente la stessa cosa. Tenerle entrambe è inutile, anzi confonde i modelli lineari. Le abbiamo ridotte a una sola per ogni coppia. Abbiamo anche analizzato gli outlier con quattro metodi diversi — deviazione standard, IQR, DBSCAN, Isolation Forest — concludendo che nei dati clienti gli outlier sono spesso clienti reali e li abbiamo mantenuti.",
+
+"Ora la parte centrale: i modelli. Ne abbiamo confrontati cinque, dal più semplice al più sofisticato. Ognuno ha una sua filosofia. Vi spiego i tre principali con un'analogia.",
+
+"Il Decision Tree, l'albero di decisione, è una catena di domande sì-no. Esattamente come un medico che diagnostica: 'hai contratto mensile? sì. paghi più di ottanta euro? sì. sei cliente da meno di un anno? sì. Allora con alta probabilità abbandonerai.' Il vantaggio enorme è che il ragionamento è leggibile: si può letteralmente disegnare il percorso e mostrarlo a chi non è tecnico. È trasparente, e questo per un'azienda è oro.",
+
+"Il Random Forest fa una cosa furba: invece di un solo albero, ne costruisce cento, ognuno leggermente diverso, ognuno che vede solo una parte dei dati. Poi mette ai voti. È esattamente come fare cento sondaggi indipendenti: la singola previsione può sbagliare, ma la media di cento opinioni diverse è quasi sempre più stabile. Si chiama 'saggezza della folla', applicata alla statistica. Tipicamente è più accurato del singolo albero, ma perde la trasparenza: cento alberi insieme non li leggi più.",
+
+"L'MLP, multi-layer perceptron, è una rete neurale piccola — la versione minimalista delle stesse tecnologie che fanno funzionare ChatGPT. Apprende combinazioni complesse tra variabili che un modello lineare non vedrebbe. Nel nostro caso però ha un limite: la libreria che abbiamo usato non gestisce automaticamente lo sbilanciamento delle classi. Ha imparato bene a riconoscere chi resta, meno bene a riconoscere chi se ne va — esattamente il contrario di quello che ci serve.",
+
+"Ed eccoci ai risultati. Questa è la classifica finale dei cinque modelli sul test set, quei 1409 clienti che nessun modello aveva mai visto prima. La metrica è il Macro F1. Il vincitore, con un margine ristretto ma chiaro, è il Decision Tree.",
+
+"Perché il Decision Tree vince? Per due motivi pratici. Primo: ha il recall più alto sulla classe churned — l'ottantanove per cento. Tradotto: su cento clienti che effettivamente stanno per andarsene, ne intercetta ottantanove. Per il marketing è la cosa più importante: meglio chiamare qualche cliente in più che non doveva andarsene, che perdere quelli che davvero stavano per farlo. Secondo: è interpretabile. Un manager può leggere le regole. Random Forest e MLP sono leggermente meno bravi qui, ma soprattutto sono scatole nere.",
+
+"Quali variabili guida il modello vincitore? Una sola, dominante: il tipo di contratto, che da sola pesa il cinquantasette per cento delle decisioni. A seguire, in modo molto più distribuito, il numero di referral fatti dal cliente, il numero di persone a carico, e il tipo di connessione internet. Il messaggio per l'azienda è chiarissimo: il leva più potente per ridurre il churn non è uno sconto, è convincere i clienti a passare a un contratto annuale o biennale.",
+
+"Abbiamo anche confrontato tre modi diversi di selezionare le variabili — SelectKBest, Stepwise Forward e Stepwise Backward. La buona notizia: i tre metodi sono d'accordo sulle variabili più importanti. Tipo di contratto, durata, costo mensile, tipo di internet emergono in tutti e tre. La scelta del metodo non cambia sostanzialmente il risultato — segno che il segnale nei dati è robusto.",
+
+"Tre limiti onesti del nostro lavoro. Primo: il dataset è di una compagnia californiana, anno specifico. Un modello allenato qui non funziona automaticamente in Italia o tra cinque anni. I comportamenti dei clienti cambiano, e il modello va riallenato. Secondo: l'MLP non gestisce lo sbilanciamento, e questo lo penalizza ingiustamente — con più tempo si potrebbero usare tecniche di oversampling. Terzo: noi misuriamo correlazione, non causalità. Sappiamo CHI è a rischio, non CHE COSA causerebbe il cambio di comportamento se intervenissimo.",
+
+"Una riflessione etica che ci siamo posti. Se il modello identifica i clienti a rischio e l'azienda offre loro uno sconto per trattenerli, sta di fatto premiando chi minaccia di andarsene e penalizzando i clienti fedeli, che pagano il prezzo pieno. È una pratica diffusa ma discutibile. Inoltre il modello apprende da dati storici: se in passato certi gruppi di clienti hanno ricevuto un servizio peggiore, il modello potrebbe perpetuare quella discriminazione, marcandoli come 'a rischio' e trattandoli di conseguenza. Servono attenzione, audit, e trasparenza.",
+
+"Cosa farebbe un'azienda con un modello come questo. Tre azioni concrete. Uno: una dashboard di rischio per il customer service, in cui ogni cliente è etichettato con la sua probabilità di abbandono. Due: campagne di retention proattive — offerte personalizzate per i top mille clienti più a rischio ogni mese. Tre: la cosa più importante, ma anche la più strategica: ridisegnare i contratti. Se i mensili sono il rischio principale, l'azienda può creare incentivi forti per i biennali, sapendo che ogni cliente convertito riduce di molto il rischio futuro.",
+
+"Grazie per l'attenzione. Riassumo in tre punti. Il churn dipende soprattutto dal tipo di contratto, dalla durata della relazione e dal rapporto qualità-prezzo percepito. Il modello migliore è un Decision Tree con Macro F1 di zero virgola settantasei e recall dell'ottantanove per cento sulla classe churned. La leva di business più forte è convertire i clienti mensili in contratti pluriennali. Siamo a disposizione per le domande."
+]
+</script>
+
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --bg-soft: #F9FAFB;
+    --bg-soft-2: #F2F4F7;
+    --ink: #101828;
+    --ink-2: #344054;
+    --muted: #667085;
+    --muted-2: #98A2B3;
+    --line: #EAECF0;
+    --line-2: #D0D5DD;
+    --accent: #6941C6;
+    --accent-soft: #F4EBFF;
+    --accent-ink: #53389E;
+    --good: #12B76A;
+    --good-soft: #ECFDF3;
+    --warn: #F04438;
+    --warn-soft: #FEF3F2;
+
+    --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #1a1a1a;
+    font-family: var(--font-sans);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  deck-stage > section {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ---------- Slide chrome ---------- */
+  .slide {
+    width: 100%; height: 100%;
+    padding: 64px 80px 56px;
+    box-sizing: border-box;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+
+  .slide.soft { background: var(--bg-soft); }
+
+  .slide-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 28px;
+  }
+
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-tag .num { color: var(--accent); font-weight: 600; }
+  .section-tag .sep { color: var(--line-2); }
+
+  .brand {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--muted-2);
+    text-transform: uppercase;
+  }
+
+  .slide-footer {
+    position: absolute;
+    bottom: 28px;
+    left: 80px;
+    right: 80px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted-2);
+    letter-spacing: 0.1em;
+  }
+  .slide-footer .label { text-transform: uppercase; }
+  .slide-footer .pageno { color: var(--ink-2); font-weight: 500; }
+
+  h1.title {
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  h1.title.xl { font-size: 76px; }
+  h2.subtitle {
+    font-size: 20px;
+    line-height: 1.45;
+    color: var(--muted);
+    font-weight: 400;
+    margin: 0;
+    max-width: 880px;
+    text-wrap: pretty;
+  }
+
+  /* ---------- KPI cards ---------- */
+  .kpi-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .kpi-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+  .kpi {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 24px;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    gap: 10px;
+    min-height: 130px;
+    position: relative;
+  }
+  .kpi.dark { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .kpi.dark .kpi-label, .kpi.dark .kpi-sub { color: rgba(255,255,255,0.6); }
+  .kpi.dark .kpi-value { color: #fff; }
+  .kpi.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .kpi.accent .kpi-label, .kpi.accent .kpi-sub { color: rgba(255,255,255,0.75); }
+  .kpi.accent .kpi-value { color: #fff; }
+  .kpi.soft { background: var(--bg-soft); }
+
+  .kpi-label {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 500;
+    font-family: var(--font-mono);
+  }
+  .kpi-value {
+    font-size: 44px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-value.lg { font-size: 60px; }
+  .kpi-value .unit { font-size: 24px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+  .kpi-sub {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .kpi-trend {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--good-soft);
+    color: var(--good);
+    width: fit-content;
+  }
+  .kpi-trend.warn { background: var(--warn-soft); color: var(--warn); }
+  .kpi-trend.neutral { background: var(--bg-soft-2); color: var(--ink-2); }
+
+  .badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--good);
+    color: #fff;
+  }
+
+  /* ---------- Tables ---------- */
+  table.dash {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+  table.dash thead th {
+    background: var(--bg-soft-2);
+    color: var(--ink-2);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+  }
+  table.dash tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-2);
+    vertical-align: middle;
+  }
+  table.dash tbody tr:nth-child(even) td { background: var(--bg-soft); }
+  table.dash tbody tr.winner td {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+  table.dash td.num {
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+    text-align: right;
+  }
+  table.dash td.first { font-weight: 600; color: var(--ink); }
+  .winner-flag {
+    display: inline-block;
+    margin-left: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--accent);
+    color: #fff;
+    vertical-align: middle;
+  }
+
+  /* ---------- Bars ---------- */
+  .bars {
+    display: flex; flex-direction: column; gap: 14px;
+    width: 100%;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 70px;
+    gap: 16px;
+    align-items: center;
+  }
+  .bar-row .label {
+    font-size: 14px;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .bar-row .label.muted { color: var(--muted); font-weight: 400; }
+  .bar-track {
+    height: 14px;
+    background: var(--bg-soft-2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+  }
+  .bar-fill.muted { background: var(--line-2); }
+  .bar-fill.good { background: var(--good); }
+  .bar-fill.warn { background: var(--warn); }
+  .bar-row .num {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink);
+    text-align: right;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Real chart card ---------- */
+  .chart {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg);
+    padding: 14px 16px 12px;
+    display: flex; flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .chart .head {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px;
+  }
+  .chart .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .chart .src {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted-2);
+    letter-spacing: 0.06em;
+  }
+  .chart img {
+    width: 100%;
+    height: auto;
+    max-height: 360px;
+    display: block;
+    background: #fff;
+    border-radius: 6px;
+    object-fit: contain;
+  }
+  .chart .cap {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+    padding-top: 6px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ---------- Chart placeholder ---------- */
+  .chart-ph {
+    border: 1px dashed var(--line-2);
+    border-radius: 12px;
+    background:
+      repeating-linear-gradient(45deg, transparent 0 8px, var(--bg-soft) 8px 16px);
+    padding: 20px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: 240px;
+    position: relative;
+  }
+  .chart-ph .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    background: var(--bg);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    width: fit-content;
+  }
+  .chart-ph .desc {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    max-width: 480px;
+  }
+
+  /* ---------- Generic blocks ---------- */
+  .row { display: flex; gap: 32px; }
+  .col { flex: 1; min-width: 0; }
+  .stack { display: flex; flex-direction: column; }
+  .gap-8  { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .gap-16 { gap: 16px; }
+  .gap-20 { gap: 20px; }
+  .gap-24 { gap: 24px; }
+  .gap-32 { gap: 32px; }
+  .grow { flex: 1; }
+
+  .panel {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 24px;
+    background: var(--bg);
+  }
+  .panel.soft { background: var(--bg-soft); }
+  .panel.accent {
+    background: var(--accent-soft);
+    border-color: #E9D7FE;
+    color: var(--accent-ink);
+  }
+  .panel-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title {
+    font-size: 18px; font-weight: 600; color: var(--ink); margin: 0 0 6px;
+  }
+  .panel-body {
+    font-size: 15px; line-height: 1.55; color: var(--ink-2);
+  }
+
+  ul.clean {
+    margin: 0; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  ul.clean > li {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    align-items: start;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  ul.clean > li::before {
+    content: "";
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--accent);
+    border-radius: 4px;
+    display: block;
+    margin-top: 4px;
+    background: var(--accent-soft);
+  }
+  ul.clean.dash > li::before {
+    border-color: var(--line-2);
+    background: transparent;
+    height: 0;
+    margin-top: 12px;
+    border-radius: 0;
+    border-top: 1.5px solid var(--line-2);
+    border-left: 0; border-right: 0; border-bottom: 0;
+  }
+
+  .quote {
+    font-size: 28px; line-height: 1.3;
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    max-width: 900px;
+    text-wrap: balance;
+  }
+  .quote .accent { color: var(--accent); }
+  .quote em { font-style: normal; background: var(--accent-soft); padding: 0 6px; border-radius: 4px; color: var(--accent-ink); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink-2);
+    width: fit-content;
+  }
+  .pill.warn { background: var(--warn-soft); border-color: #FECDCA; color: var(--warn); }
+  .pill.good { background: var(--good-soft); border-color: #ABEFC6; color: #027A48; }
+  .pill.accent { background: var(--accent-soft); border-color: #E9D7FE; color: var(--accent-ink); }
+
+  .icon-x {
+    display: inline-flex;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--warn-soft);
+    color: var(--warn);
+    align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+    border: 1px solid #FECDCA;
+  }
+  .icon-check {
+    display: inline-flex;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--good-soft);
+    color: var(--good);
+    align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+    border: 1px solid #ABEFC6;
+  }
+
+  /* ---------- Cover ---------- */
+  .cover {
+    padding: 72px 88px;
+  }
+  .cover .cover-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 60px;
+  }
+  .cover .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .cover .meta-r {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-align: right;
+    line-height: 1.6;
+  }
+  .cover .hero-title {
+    font-size: 96px;
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 20px;
+    max-width: 1200px;
+  }
+  .cover .hero-title .accent { color: var(--accent); }
+  .cover .hero-sub {
+    font-size: 22px;
+    color: var(--muted);
+    max-width: 740px;
+    line-height: 1.45;
+    margin: 0 0 56px;
+    text-wrap: pretty;
+  }
+  .cover-kpis { margin-top: auto; }
+
+  .cover-foot {
+    margin-top: 40px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: flex-end;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  .cover-foot .authors { color: var(--ink-2); line-height: 1.7; }
+  .cover-foot .authors strong { color: var(--ink); font-weight: 600; letter-spacing: 0.12em; display: block; margin-bottom: 4px; font-size: 10px; }
+
+  /* ---------- Section divider ---------- */
+  .divider {
+    padding: 80px 88px;
+    background: var(--ink);
+    color: #fff;
+    display: flex; flex-direction: column; justify-content: space-between;
+    height: 100%; box-sizing: border-box;
+  }
+  .divider .section-tag { color: rgba(255,255,255,0.55); }
+  .divider .section-tag .num { color: #B692F6; }
+  .divider .section-tag .sep { color: rgba(255,255,255,0.25); }
+  .divider .big {
+    font-size: 120px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    color: #fff;
+    text-wrap: balance;
+    max-width: 1400px;
+  }
+  .divider .big .accent { color: #B692F6; }
+  .divider .lead {
+    font-size: 22px;
+    color: rgba(255,255,255,0.65);
+    max-width: 720px;
+    line-height: 1.5;
+    margin-top: 24px;
+  }
+  .divider-foot {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .divider-foot .toc {
+    display: flex; gap: 24px;
+  }
+  .divider-foot .toc span.cur { color: #fff; }
+
+  /* ---------- Decision tree visual ---------- */
+  .tree {
+    display: grid; grid-template-rows: auto auto auto;
+    gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .tree .node {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: center;
+    color: var(--ink-2);
+  }
+  .tree .node.q { background: var(--accent-soft); border-color: #E9D7FE; color: var(--accent-ink); font-weight: 600; }
+  .tree .node.churn { background: var(--warn-soft); border-color: #FECDCA; color: var(--warn); font-weight: 600; }
+  .tree .node.stay { background: var(--good-soft); border-color: #ABEFC6; color: #027A48; font-weight: 600; }
+  .tree .branches {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    position: relative;
+  }
+  .tree .branches::before {
+    content: ""; position: absolute; top: -14px; left: 25%; right: 25%; height: 1px;
+    border-top: 1px dashed var(--line-2);
+  }
+  .branch-label {
+    font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-align: center;
+    text-transform: uppercase;
+  }
+
+  /* ---------- Closing ---------- */
+  .closing {
+    background: var(--ink); color: #fff;
+    padding: 80px 88px;
+    height: 100%; box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .closing h1 {
+    font-size: 110px; line-height: 0.95; letter-spacing: -0.03em;
+    font-weight: 700; margin: 0;
+  }
+  .closing h1 .accent { color: #B692F6; }
+  .closing .lede {
+    font-size: 20px;
+    color: rgba(255,255,255,0.6);
+    max-width: 700px;
+    line-height: 1.5;
+    margin-top: 20px;
+  }
+  .closing-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    margin-top: 60px;
+  }
+  .closing-grid .item {
+    border-top: 1px solid rgba(255,255,255,0.18);
+    padding-top: 16px;
+  }
+  .closing-grid .num {
+    font-family: var(--font-mono); font-size: 12px;
+    color: #B692F6; letter-spacing: 0.14em; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .closing-grid .txt { color: rgba(255,255,255,0.85); font-size: 16px; line-height: 1.5; }
+
+  /* mini icons */
+  .ico {
+    width: 18px; height: 18px;
+    stroke: currentColor; fill: none;
+    stroke-width: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<script src="deck-stage.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="tweaks-app.jsx"></script>
+
+<deck-stage>
+
+<!-- =================== 01 · COVER =================== -->
+<section data-screen-label="01 Copertina">
+  <div class="slide cover">
+    <div class="cover-meta">
+      <div class="eyebrow">Telco Customer Churn · ML Project</div>
+      <div class="meta-r">
+        DEVELHOPE · DATA / IA<br/>
+        TELCO-CHURN · 2026
+      </div>
+    </div>
+
+    <h1 class="hero-title">Chi sta per <span class="accent">andarsene</span>,<br/>e perché.</h1>
+    <p class="hero-sub">Un modello di Machine Learning per prevedere il churn dei clienti telefonici, costruito su 7.043 contratti reali e valutato su un test mai visto dal modello.</p>
+
+    <div class="cover-kpis kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Clienti analizzati</div>
+        <div class="kpi-value">7.043</div>
+        <div class="kpi-sub">Compagnia californiana</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Tasso di churn</div>
+        <div class="kpi-value">26,5<span class="unit">%</span></div>
+        <div class="kpi-sub">1.869 clienti persi</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Modelli confrontati</div>
+        <div class="kpi-value">5</div>
+        <div class="kpi-sub">Da Dummy a rete neurale</div>
+      </div>
+      <div class="kpi accent">
+        <div class="kpi-label">Macro F1 finale</div>
+        <div class="kpi-value">0.764</div>
+        <div class="kpi-sub">Decision Tree, max_depth 5</div>
+      </div>
+    </div>
+
+    <div class="cover-foot">
+      <div class="authors">
+        <strong>AUTORI</strong>
+        Antonio Speranza · Giada Jenny Qalifa · Davide Culò
+      </div>
+      <div>v1.0 · 2026</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 02 · AGENDA =================== -->
+<section data-screen-label="02 Agenda">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">00</span><span class="sep">/</span><span>AGENDA</span></div>
+      <div class="brand">TELCO-CHURN · DEVELHOPE</div>
+    </div>
+
+    <h1 class="title">Sei capitoli, quindici minuti.</h1>
+    <h2 class="subtitle">Dal problema di business alla decisione del modello, passando per i dati e le scelte metodologiche.</h2>
+
+    <div style="margin-top: 48px;">
+      <table class="dash">
+        <thead>
+          <tr><th style="width:60px;">#</th><th>Capitolo</th><th>Cosa copriamo</th><th class="num" style="text-align:right;">Durata</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="first">01</td><td class="first">Il problema</td><td>Cos'è il churn e perché costa</td><td class="num">2 min</td></tr>
+          <tr><td class="first">02</td><td class="first">Dataset & metodo</td><td>49 colonne, data leakage, scelte di pulizia</td><td class="num">3 min</td></tr>
+          <tr><td class="first">03</td><td class="first">Chi abbandona?</td><td>Profili, contratti, tenure, costi</td><td class="num">3 min</td></tr>
+          <tr><td class="first">04</td><td class="first">Come funzionano i modelli</td><td>Decision Tree, Random Forest, MLP</td><td class="num">3 min</td></tr>
+          <tr><td class="first">05</td><td class="first">I risultati</td><td>Confronto, vincitore, feature importance</td><td class="num">4 min</td></tr>
+          <tr><td class="first">06</td><td class="first">Riflessioni critiche</td><td>Limiti, etica, applicazioni reali</td><td class="num">2 min</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="slide-footer"><span class="label">Agenda</span><span class="pageno">02</span></div>
+  </div>
+</section>
+
+<!-- =================== 03 · DIVIDER 01 =================== -->
+<section data-screen-label="03 Divider 01">
+  <div class="divider">
+    <div class="section-tag"><span class="num">01</span><span class="sep">/</span><span>IL PROBLEMA</span></div>
+    <div>
+      <div class="big">Acquisire un nuovo cliente costa <span class="accent">5–7×</span> più che trattenere uno esistente.</div>
+      <div class="lead">Il churn è il problema numero uno delle telco. Vediamo cosa significa nei numeri del nostro dataset.</div>
+    </div>
+    <div class="divider-foot">
+      <div class="toc">
+        <span class="cur">01 PROBLEMA</span>
+        <span>02 DATI</span>
+        <span>03 PROFILI</span>
+        <span>04 MODELLI</span>
+        <span>05 RISULTATI</span>
+        <span>06 ETICA</span>
+      </div>
+      <div>03</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 04 · CHURN DEFINIZIONE =================== -->
+<section data-screen-label="04 Churn cos'è">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">01</span><span class="sep">/</span><span>PROBLEMA</span></div>
+      <div class="brand">DEFINIZIONE</div>
+    </div>
+
+    <h1 class="title">Cos'è il churn, in pratica.</h1>
+    <h2 class="subtitle">Quando un cliente smette di usare un servizio. Per una compagnia telefonica, è la metrica che decide la sostenibilità del modello di business.</h2>
+
+    <div class="row gap-32" style="margin-top: 40px;">
+      <div class="col">
+        <div class="kpi-grid cols-2">
+          <div class="kpi soft">
+            <div class="kpi-label">Clienti totali</div>
+            <div class="kpi-value">7.043</div>
+            <div class="kpi-sub">100% del dataset</div>
+          </div>
+          <div class="kpi" style="background: var(--warn-soft); border-color:#FECDCA;">
+            <div class="kpi-label" style="color:#B42318;">Clienti persi</div>
+            <div class="kpi-value" style="color:var(--warn);">1.869</div>
+            <div class="kpi-sub" style="color:#B42318;">26,5% — la classe minoritaria</div>
+          </div>
+          <div class="kpi" style="background: var(--good-soft); border-color:#ABEFC6;">
+            <div class="kpi-label" style="color:#027A48;">Clienti rimasti</div>
+            <div class="kpi-value" style="color:#027A48;">5.174</div>
+            <div class="kpi-sub" style="color:#027A48;">73,5% — la classe maggioritaria</div>
+          </div>
+          <div class="kpi accent">
+            <div class="kpi-label">Costo relativo</div>
+            <div class="kpi-value">5–7×</div>
+            <div class="kpi-sub">Acquisire vs trattenere</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="max-width: 460px;">
+        <div class="chart">
+          <div class="head">
+            <span class="tag">◇ Distribuzione classi</span>
+            <span class="src">// n=7.043</span>
+          </div>
+          <svg viewBox="0 0 360 220" style="width:100%; height:auto;" role="img" aria-label="Donut con proporzione churn 26.5% e rimasti 73.5%">
+            <!-- Donut: 26.5% churned (accent), 73.5% rimasti (line-2) -->
+            <g transform="translate(110 110)">
+              <circle r="80" fill="none" stroke="#EAECF0" stroke-width="32"/>
+              <!-- Arc 26.5% = 0.265 * 2π · stroke-dasharray trick. Circumference = 2π·80 ≈ 502.65 -->
+              <circle r="80" fill="none" stroke="#6941C6" stroke-width="32"
+                      stroke-dasharray="133.2 502.65"
+                      transform="rotate(-90)"/>
+              <text x="0" y="-2" text-anchor="middle" font-family="Inter,sans-serif" font-size="28" font-weight="700" fill="#101828">26,5%</text>
+              <text x="0" y="20" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#667085" letter-spacing="0.08em">CHURNED</text>
+            </g>
+            <!-- Legend -->
+            <g transform="translate(220 70)" font-family="Inter,sans-serif" font-size="13" fill="#344054">
+              <rect x="0" y="0" width="14" height="14" rx="3" fill="#6941C6"/>
+              <text x="22" y="11">Churned</text>
+              <text x="22" y="28" font-family="JetBrains Mono,monospace" font-size="13" fill="#101828" font-weight="600">1.869</text>
+              <text x="22" y="44" font-size="11" fill="#98A2B3">26,5%</text>
+
+              <rect x="0" y="68" width="14" height="14" rx="3" fill="#EAECF0" stroke="#D0D5DD" stroke-width="1"/>
+              <text x="22" y="79">Rimasti</text>
+              <text x="22" y="96" font-family="JetBrains Mono,monospace" font-size="13" fill="#101828" font-weight="600">5.174</text>
+              <text x="22" y="112" font-size="11" fill="#98A2B3">73,5%</text>
+            </g>
+          </svg>
+          <div class="cap">Lo sbilanciamento fra rimasti (73,5%) e churned (26,5%) è la ragione per cui useremo Macro F1 invece di accuracy.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">01 · Problema</span><span class="pageno">04</span></div>
+  </div>
+</section>
+
+<!-- =================== 05 · METRICA =================== -->
+<section data-screen-label="05 Perché Macro F1">
+  <div class="slide soft">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">01</span><span class="sep">/</span><span>PROBLEMA</span></div>
+      <div class="brand">SCELTA DELLA METRICA</div>
+    </div>
+
+    <h1 class="title">Perché l'accuratezza qui inganna.</h1>
+    <h2 class="subtitle">Con classi sbilanciate, un modello che predice <em>sempre lo stesso valore</em> sembra brillante. Ma è inutile.</h2>
+
+    <div class="row gap-24" style="margin-top: 48px;">
+      <div class="col panel">
+        <div class="panel-label">◇ MODELLO STUPIDO</div>
+        <h3 class="panel-title">"Predico sempre: rimasto"</h3>
+        <div class="kpi-grid cols-2" style="margin-top:18px;">
+          <div class="kpi soft">
+            <div class="kpi-label">Accuratezza</div>
+            <div class="kpi-value" style="color:var(--ink);">73<span class="unit">%</span></div>
+            <span class="kpi-trend warn">Falso amico</span>
+          </div>
+          <div class="kpi soft">
+            <div class="kpi-label">Macro F1</div>
+            <div class="kpi-value" style="color:var(--warn);">0.42</div>
+            <span class="kpi-trend warn">Smaschera l'inganno</span>
+          </div>
+        </div>
+        <p class="panel-body" style="margin-top:14px;">Identifica zero clienti a rischio. Per il marketing, vale zero.</p>
+      </div>
+
+      <div class="col panel">
+        <div class="panel-label">◆ COSA USIAMO NOI</div>
+        <h3 class="panel-title">Macro F1-Score</h3>
+        <p class="panel-body" style="margin-top:8px;">
+          Pesa equamente entrambe le classi: la performance sui clienti rimasti <em>e</em> sui clienti persi contano allo stesso modo.
+        </p>
+        <ul class="clean dash" style="margin-top: 18px; gap: 8px;">
+          <li><span>Penalizza chi ignora la classe minoritaria.</span></li>
+          <li><span>Riflette il valore di business reale: trovare i churned.</span></li>
+          <li><span>È la metrica che useremo in tutta la presentazione.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">01 · Problema</span><span class="pageno">05</span></div>
+  </div>
+</section>
+
+<!-- =================== 06 · DIVIDER 02 =================== -->
+<section data-screen-label="06 Divider 02">
+  <div class="divider">
+    <div class="section-tag"><span class="num">02</span><span class="sep">/</span><span>DATI &amp; METODO</span></div>
+    <div>
+      <div class="big">Da <span class="accent">49</span> colonne a <span class="accent">30</span>.<br/>Cosa abbiamo tolto e perché.</div>
+      <div class="lead">La pulizia dei dati è dove un progetto di ML si fa o si rompe. Qui è dove abbiamo passato più tempo.</div>
+    </div>
+    <div class="divider-foot">
+      <div class="toc">
+        <span>01 PROBLEMA</span>
+        <span class="cur">02 DATI</span>
+        <span>03 PROFILI</span>
+        <span>04 MODELLI</span>
+        <span>05 RISULTATI</span>
+        <span>06 ETICA</span>
+      </div>
+      <div>06</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 07 · DATA LEAKAGE =================== -->
+<section data-screen-label="07 Data leakage">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">02</span><span class="sep">/</span><span>DATI</span></div>
+      <div class="brand">DATA LEAKAGE</div>
+    </div>
+
+    <h1 class="title">Studiare con le risposte già in mano.</h1>
+    <h2 class="subtitle">Il <em>data leakage</em> è quando il modello si allena vedendo informazioni che nella realtà non avrebbe. Sembra bravissimo. In produzione crolla.</h2>
+
+    <div class="row gap-24" style="margin-top: 40px;">
+      <div class="col" style="flex:1.4;">
+        <div class="panel-label">◇ COLONNE RIMOSSE PER LEAKAGE</div>
+        <table class="dash" style="margin-top:10px;">
+          <thead>
+            <tr><th style="width:32px;"></th><th>Colonna</th><th>Perché è tossica</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="icon-x">×</span></td><td class="first">Churn</td><td>È la risposta stessa.</td></tr>
+            <tr><td><span class="icon-x">×</span></td><td class="first">Churn Score</td><td>Score interno calcolato dopo l'abbandono.</td></tr>
+            <tr><td><span class="icon-x">×</span></td><td class="first">Churn Category</td><td>Categoria assegnata <em>a posteriori</em>.</td></tr>
+            <tr><td><span class="icon-x">×</span></td><td class="first">Churn Reason</td><td>Motivazione data dal cliente uscente.</td></tr>
+            <tr><td><span class="icon-x">×</span></td><td class="first">Customer Status</td><td>Indica se è già attivo / perso / nuovo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="col" style="max-width: 380px;">
+        <div class="panel accent" style="height: 100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:center;">
+          <div class="panel-label" style="color:var(--accent-ink);">◆ ANALOGIA</div>
+          <p class="quote" style="font-size:22px; color:var(--accent-ink); margin:0;">
+            «Studiare per un esame con <em>le risposte già in mano</em>. Prendi trenta. Il giorno dopo, all'esame vero, non sai rispondere.»
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">02 · Dati &amp; Metodo</span><span class="pageno">07</span></div>
+  </div>
+</section>
+
+<!-- =================== 08 · COLONNE INUTILI / GRIGIE =================== -->
+<section data-screen-label="08 Altre colonne">
+  <div class="slide soft">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">02</span><span class="sep">/</span><span>DATI</span></div>
+      <div class="brand">PULIZIA · ALTRE DECISIONI</div>
+    </div>
+
+    <h1 class="title">Le altre colonne. Tagliate, mantenute, dibattute.</h1>
+
+    <div class="row gap-20" style="margin-top: 36px;">
+      <div class="col panel">
+        <div class="panel-label" style="color:var(--warn);"><span class="icon-x">×</span> RIMOSSE · INUTILI</div>
+        <ul class="clean dash" style="margin-top:14px; gap:8px;">
+          <li><span><b>Customer ID</b> — solo identificativo.</span></li>
+          <li><span><b>Country, State</b> — costante (un solo valore).</span></li>
+          <li><span><b>Lat Long</b> — già scomposto in lat/lng.</span></li>
+          <li><span><b>Quarter</b> — non informativo.</span></li>
+          <li><span><b>Under 30</b> — derivato da age.</span></li>
+        </ul>
+      </div>
+
+      <div class="col panel">
+        <div class="panel-label" style="color:var(--accent-ink);">◇ DECISIONI "GRIGIE"</div>
+        <ul class="clean" style="margin-top:14px; gap:14px;">
+          <li>
+            <span><b>Satisfaction Score</b> — <span class="pill good"><span class="icon-check" style="width:14px;height:14px;font-size:10px;">✓</span> mantenuto</span> · disponibile prima dell'abbandono.</span>
+          </li>
+          <li>
+            <span><b>City, Zip Code, Lat, Lng</b> — <span class="pill warn">× rimossi</span> · troppo granulari, rischio overfit.</span>
+          </li>
+          <li>
+            <span><b>CLTV</b> — <span class="pill good"><span class="icon-check" style="width:14px;height:14px;font-size:10px;">✓</span> mantenuto</span> · stima del valore cliente, calcolata ex ante.</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="col panel">
+        <div class="panel-label">◆ STATO FINALE</div>
+        <div class="kpi-grid cols-2" style="margin-top:14px; gap:12px;">
+          <div class="kpi soft" style="min-height:100px; padding:16px;">
+            <div class="kpi-label">Righe</div>
+            <div class="kpi-value" style="font-size:32px;">7.043</div>
+          </div>
+          <div class="kpi soft" style="min-height:100px; padding:16px;">
+            <div class="kpi-label">Colonne</div>
+            <div class="kpi-value" style="font-size:32px;">~30</div>
+          </div>
+          <div class="kpi soft" style="min-height:100px; padding:16px;">
+            <div class="kpi-label">Duplicati</div>
+            <div class="kpi-value" style="font-size:32px;">0</div>
+          </div>
+          <div class="kpi soft" style="min-height:100px; padding:16px;">
+            <div class="kpi-label">Missing</div>
+            <div class="kpi-value" style="font-size:32px;">gestiti</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">02 · Dati &amp; Metodo</span><span class="pageno">08</span></div>
+  </div>
+</section>
+
+<!-- =================== 09 · TRAIN/TEST =================== -->
+<section data-screen-label="09 Train/Test">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">02</span><span class="sep">/</span><span>DATI</span></div>
+      <div class="brand">TRAIN / TEST SPLIT</div>
+    </div>
+
+    <h1 class="title">L'80% per studiare. Il 20% per l'esame.</h1>
+    <h2 class="subtitle">Split stratificato: stessa proporzione di clienti rimasti / persi nei due gruppi. Il modello non vede mai il test set in fase di training.</h2>
+
+    <div class="kpi-grid cols-3" style="margin-top: 48px;">
+      <div class="kpi">
+        <div class="kpi-label">Training set</div>
+        <div class="kpi-value lg">5.634</div>
+        <div class="kpi-sub">80% — il modello si allena qui</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Test set</div>
+        <div class="kpi-value lg">1.409</div>
+        <div class="kpi-sub">20% — valutazione finale</div>
+      </div>
+      <div class="kpi accent">
+        <div class="kpi-label">Stratificazione</div>
+        <div class="kpi-value lg">73 / 27</div>
+        <div class="kpi-sub">Stessa proporzione classi</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 36px;">
+      <div class="bars">
+        <div class="bar-row">
+          <div class="label">Training (5.634)</div>
+          <div class="bar-track" style="height:24px;">
+            <div class="bar-fill" style="width:80%; height:100%; background:linear-gradient(to right, var(--accent) 0 73%, #B692F6 73% 100%);"></div>
+          </div>
+          <div class="num">80%</div>
+        </div>
+        <div class="bar-row">
+          <div class="label">Test (1.409)</div>
+          <div class="bar-track" style="height:24px;">
+            <div class="bar-fill" style="width:20%; height:100%; background:linear-gradient(to right, var(--ink-2) 0 73%, var(--muted) 73% 100%);"></div>
+          </div>
+          <div class="num">20%</div>
+        </div>
+      </div>
+      <div style="margin-top:18px; font-family:var(--font-mono); font-size:11px; color:var(--muted); display:flex; gap:24px;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px;margin-right:6px;vertical-align:middle;"></span>Rimasti (73%)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#B692F6;border-radius:2px;margin-right:6px;vertical-align:middle;"></span>Churned (27%)</span>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">02 · Dati &amp; Metodo</span><span class="pageno">09</span></div>
+  </div>
+</section>
+
+<!-- =================== 10 · DIVIDER 03 =================== -->
+<section data-screen-label="10 Divider 03">
+  <div class="divider">
+    <div class="section-tag"><span class="num">03</span><span class="sep">/</span><span>CHI ABBANDONA</span></div>
+    <div>
+      <div class="big">Tre profili. Un nemico in comune: <span class="accent">il contratto mensile</span>.</div>
+      <div class="lead">Esplorando i dati emergono pattern netti. La singola variabile più potente non è il prezzo. È il vincolo contrattuale.</div>
+    </div>
+    <div class="divider-foot">
+      <div class="toc">
+        <span>01 PROBLEMA</span>
+        <span>02 DATI</span>
+        <span class="cur">03 PROFILI</span>
+        <span>04 MODELLI</span>
+        <span>05 RISULTATI</span>
+        <span>06 ETICA</span>
+      </div>
+      <div>10</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 11 · CONTRATTI =================== -->
+<section data-screen-label="11 Contratti">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">03</span><span class="sep">/</span><span>PROFILI</span></div>
+      <div class="brand">SEGNALE 1 · TIPO DI CONTRATTO</div>
+    </div>
+
+    <h1 class="title">Il contratto mensile è il fattore numero uno.</h1>
+    <h2 class="subtitle">Senza vincolo, andarsene costa zero. Il tasso di churn cambia di un fattore 14 tra mensile e biennale.</h2>
+
+    <div class="row gap-32" style="margin-top: 44px;">
+      <div class="col" style="flex: 1.5;">
+        <div class="panel-label">◇ TASSO DI CHURN PER TIPO DI CONTRATTO</div>
+        <div class="bars" style="margin-top:18px; gap:22px;">
+          <div class="bar-row" style="grid-template-columns: 200px 1fr 90px;">
+            <div class="label">Mensile</div>
+            <div class="bar-track" style="height:32px;">
+              <div class="bar-fill warn" style="width:43%; height:100%;"></div>
+            </div>
+            <div class="num" style="font-size:18px; color:var(--warn); font-weight:600;">42,7%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 200px 1fr 90px;">
+            <div class="label">Annuale</div>
+            <div class="bar-track" style="height:32px;">
+              <div class="bar-fill" style="width:11%; height:100%; background:var(--accent);"></div>
+            </div>
+            <div class="num" style="font-size:18px; color:var(--accent); font-weight:600;">11,3%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 200px 1fr 90px;">
+            <div class="label">Biennale</div>
+            <div class="bar-track" style="height:32px;">
+              <div class="bar-fill good" style="width:3%; height:100%;"></div>
+            </div>
+            <div class="num" style="font-size:18px; color:var(--good); font-weight:600;">2,8%</div>
+          </div>
+        </div>
+        <div style="margin-top:24px; font-family:var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:0.06em;">
+          // SOURCE · TELCO-CHURN · n=7.043
+        </div>
+      </div>
+
+      <div class="col" style="max-width: 380px;">
+        <div class="panel accent">
+          <div class="panel-label" style="color:var(--accent-ink);">◆ INSIGHT</div>
+          <p class="panel-body" style="color:var(--accent-ink); font-size:16px;">
+            Una sola variabile — il tipo di contratto — peserà <b>il 57%</b> delle decisioni del modello vincitore. Questo è il <em>singolo</em> insight più importante per il marketing.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">03 · Profili</span><span class="pageno">11</span></div>
+  </div>
+</section>
+
+<!-- =================== 12 · TENURE =================== -->
+<section data-screen-label="12 Tenure">
+  <div class="slide soft">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">03</span><span class="sep">/</span><span>PROFILI</span></div>
+      <div class="brand">SEGNALE 2 · DURATA RELAZIONE</div>
+    </div>
+
+    <h1 class="title">Se sopravvivono ai primi mesi, restano.</h1>
+    <h2 class="subtitle">Il churn si concentra nel primo anno. Dopo i 4–5 anni, è quasi residuale.</h2>
+
+    <div class="row gap-32" style="margin-top: 40px;">
+      <div class="col" style="flex: 1.2;">
+        <div class="chart">
+          <div class="head">
+            <span class="tag">◇ Boxplot · tenure (mesi) e monthly charge (€) per classe churn</span>
+            <span class="src">// US-12 · n=7.043</span>
+          </div>
+          <svg viewBox="0 0 720 320" style="width:100%; height:auto;" role="img" aria-label="Boxplot tenure mesi e monthly charge per classe churn">
+            <!-- ============== TENURE_MONTHS panel (left) ============== -->
+            <g transform="translate(40 30)">
+              <text x="0" y="-8" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#101828">tenure_months</text>
+              <text x="280" y="-8" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="#98A2B3" letter-spacing="0.06em">MESI</text>
+              <!-- y-axis grid 0..72 → height 240 -->
+              <g font-family="JetBrains Mono,monospace" font-size="10" fill="#98A2B3">
+                <line x1="0" y1="0" x2="280" y2="0" stroke="#F2F4F7"/>
+                <text x="-6" y="3" text-anchor="end">72</text>
+                <line x1="0" y1="60" x2="280" y2="60" stroke="#F2F4F7"/>
+                <text x="-6" y="63" text-anchor="end">54</text>
+                <line x1="0" y1="120" x2="280" y2="120" stroke="#F2F4F7"/>
+                <text x="-6" y="123" text-anchor="end">36</text>
+                <line x1="0" y1="180" x2="280" y2="180" stroke="#F2F4F7"/>
+                <text x="-6" y="183" text-anchor="end">18</text>
+                <line x1="0" y1="240" x2="280" y2="240" stroke="#EAECF0"/>
+                <text x="-6" y="243" text-anchor="end">0</text>
+              </g>
+              <!-- Box "Rimasti": Q1=15, median=38, Q3=61, min=1, max=72 (240*(72-v)/72) -->
+              <!-- Whisker -->
+              <line x1="70" y1="3.3" x2="70" y2="236.7" stroke="#D0D5DD" stroke-width="1"/>
+              <line x1="55" y1="3.3" x2="85" y2="3.3" stroke="#D0D5DD" stroke-width="1"/>
+              <line x1="55" y1="236.7" x2="85" y2="236.7" stroke="#D0D5DD" stroke-width="1"/>
+              <!-- Box -->
+              <rect x="40" y="36.7" width="60" height="153.3" fill="#EAECF0" stroke="#98A2B3" stroke-width="1" rx="2"/>
+              <line x1="40" y1="113.3" x2="100" y2="113.3" stroke="#101828" stroke-width="2"/>
+              <text x="70" y="263" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#344054" font-weight="600">Rimasti</text>
+              <text x="70" y="278" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#667085">mediana 38</text>
+              <!-- Box "Churned": Q1=2, median=10, Q3=29, min=1, max=68, outliers ~70-72 -->
+              <line x1="210" y1="13.3" x2="210" y2="236.7" stroke="#D0D5DD" stroke-width="1"/>
+              <line x1="195" y1="13.3" x2="225" y2="13.3" stroke="#D0D5DD" stroke-width="1"/>
+              <line x1="195" y1="236.7" x2="225" y2="236.7" stroke="#D0D5DD" stroke-width="1"/>
+              <rect x="180" y="143.3" width="60" height="90" fill="#F4EBFF" stroke="#6941C6" stroke-width="1" rx="2"/>
+              <line x1="180" y1="206.7" x2="240" y2="206.7" stroke="#6941C6" stroke-width="2.5"/>
+              <!-- Outliers -->
+              <circle cx="210" cy="6.7" r="2.5" fill="none" stroke="#6941C6" stroke-width="1"/>
+              <circle cx="210" cy="3.3" r="2.5" fill="none" stroke="#6941C6" stroke-width="1"/>
+              <text x="210" y="263" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#53389E" font-weight="600">Churned</text>
+              <text x="210" y="278" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#6941C6">mediana 10</text>
+            </g>
+            <!-- ============== MONTHLY_CHARGE panel (right) ============== -->
+            <g transform="translate(400 30)">
+              <text x="0" y="-8" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#101828">monthly_charge</text>
+              <text x="280" y="-8" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="#98A2B3" letter-spacing="0.06em">€ / MESE</text>
+              <g font-family="JetBrains Mono,monospace" font-size="10" fill="#98A2B3">
+                <line x1="0" y1="0" x2="280" y2="0" stroke="#F2F4F7"/>
+                <text x="-6" y="3" text-anchor="end">120</text>
+                <line x1="0" y1="60" x2="280" y2="60" stroke="#F2F4F7"/>
+                <text x="-6" y="63" text-anchor="end">90</text>
+                <line x1="0" y1="120" x2="280" y2="120" stroke="#F2F4F7"/>
+                <text x="-6" y="123" text-anchor="end">60</text>
+                <line x1="0" y1="180" x2="280" y2="180" stroke="#F2F4F7"/>
+                <text x="-6" y="183" text-anchor="end">30</text>
+                <line x1="0" y1="240" x2="280" y2="240" stroke="#EAECF0"/>
+                <text x="-6" y="243" text-anchor="end">0</text>
+              </g>
+              <!-- Box "Rimasti": Q1=25, median=64, Q3=88, min=18, max=118 → y=240-2*v -->
+              <line x1="70" y1="4" x2="70" y2="204" stroke="#D0D5DD" stroke-width="1"/>
+              <line x1="55" y1="4" x2="85" y2="4" stroke="#D0D5DD" stroke-width="1"/>
+              <line x1="55" y1="204" x2="85" y2="204" stroke="#D0D5DD" stroke-width="1"/>
+              <rect x="40" y="64" width="60" height="126" fill="#EAECF0" stroke="#98A2B3" stroke-width="1" rx="2"/>
+              <line x1="40" y1="112" x2="100" y2="112" stroke="#101828" stroke-width="2"/>
+              <text x="70" y="263" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#344054" font-weight="600">Rimasti</text>
+              <text x="70" y="278" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#667085">mediana 64€</text>
+              <!-- Box "Churned": Q1=56, median=80, Q3=94, min=19, max=118 -->
+              <line x1="210" y1="4" x2="210" y2="202" stroke="#D0D5DD" stroke-width="1"/>
+              <line x1="195" y1="4" x2="225" y2="4" stroke="#D0D5DD" stroke-width="1"/>
+              <line x1="195" y1="202" x2="225" y2="202" stroke="#D0D5DD" stroke-width="1"/>
+              <rect x="180" y="52" width="60" height="76" fill="#F4EBFF" stroke="#6941C6" stroke-width="1" rx="2"/>
+              <line x1="180" y1="80" x2="240" y2="80" stroke="#6941C6" stroke-width="2.5"/>
+              <text x="210" y="263" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#53389E" font-weight="600">Churned</text>
+              <text x="210" y="278" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#6941C6">mediana 80€</text>
+            </g>
+          </svg>
+          <div class="cap">Tenure: i churned hanno mediana <b>10 mesi</b> contro 38 dei rimasti. Monthly charge: i churned pagano <b>80€</b> di mediana, +25% rispetto ai rimasti.</div>
+        </div>
+      </div>
+
+      <div class="col" style="max-width: 360px;">
+        <div class="kpi-grid cols-2" style="grid-template-columns: 1fr;">
+          <div class="kpi" style="background:var(--warn-soft); border-color:#FECDCA;">
+            <div class="kpi-label" style="color:#B42318;">Tenure mediana · churned</div>
+            <div class="kpi-value" style="color:var(--warn);">~10<span class="unit">mesi</span></div>
+            <div class="kpi-sub" style="color:#B42318;">Zona critica · onboarding</div>
+          </div>
+          <div class="kpi" style="background:var(--good-soft); border-color:#ABEFC6;">
+            <div class="kpi-label" style="color:#027A48;">Tenure mediana · rimasti</div>
+            <div class="kpi-value" style="color:#027A48;">~38<span class="unit">mesi</span></div>
+            <div class="kpi-sub" style="color:#027A48;">Clienti consolidati</div>
+          </div>
+          <div class="kpi accent">
+            <div class="kpi-label">Differenza</div>
+            <div class="kpi-value">3,8×</div>
+            <div class="kpi-sub">Mediana rimasti vs churned</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">03 · Profili</span><span class="pageno">12</span></div>
+  </div>
+</section>
+
+<!-- =================== 13 · COSTO =================== -->
+<section data-screen-label="13 Costo">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">03</span><span class="sep">/</span><span>PROFILI</span></div>
+      <div class="brand">SEGNALE 3 · COSTO &amp; VALORE PERCEPITO</div>
+    </div>
+
+    <h1 class="title">Pagano molto, ricevono poco, vanno via.</h1>
+    <h2 class="subtitle">Il rischio massimo è il cliente con fibra ottica costosa, contratto mensile e nessun servizio aggiuntivo.</h2>
+
+    <div class="row gap-24" style="margin-top: 44px;">
+      <div class="col panel">
+        <div class="panel-label">◆ MONTHLY CHARGE MEDIO</div>
+        <div class="bars" style="margin-top:14px; gap:18px;">
+          <div class="bar-row">
+            <div class="label muted">Clienti rimasti</div>
+            <div class="bar-track"><div class="bar-fill" style="width:55%; background:var(--good);"></div></div>
+            <div class="num">61,3 €</div>
+          </div>
+          <div class="bar-row">
+            <div class="label muted">Clienti churned</div>
+            <div class="bar-track"><div class="bar-fill warn" style="width:80%;"></div></div>
+            <div class="num">74,4 €</div>
+          </div>
+        </div>
+        <p class="panel-body" style="margin-top:16px; font-size:14px;">+22% di costo medio mensile per chi se ne va.</p>
+      </div>
+
+      <div class="col panel">
+        <div class="panel-label">◆ TIPO INTERNET × CHURN</div>
+        <div class="bars" style="margin-top:14px; gap:14px;">
+          <div class="bar-row" style="grid-template-columns: 120px 1fr 60px;">
+            <div class="label muted">Fibra ottica</div>
+            <div class="bar-track"><div class="bar-fill warn" style="width:71%;"></div></div>
+            <div class="num">41%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 120px 1fr 60px;">
+            <div class="label muted">DSL</div>
+            <div class="bar-track"><div class="bar-fill" style="width:32%; background:var(--accent);"></div></div>
+            <div class="num">19%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 120px 1fr 60px;">
+            <div class="label muted">No internet</div>
+            <div class="bar-track"><div class="bar-fill good" style="width:13%;"></div></div>
+            <div class="num">7%</div>
+          </div>
+        </div>
+        <p class="panel-body" style="margin-top:16px; font-size:14px;">La fibra costa di più e attende di più.</p>
+      </div>
+
+      <div class="col" style="max-width: 320px;">
+        <div class="panel accent" style="height:100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:center;">
+          <div class="panel-label" style="color:var(--accent-ink);">◇ PROFILO A RISCHIO</div>
+          <p class="quote" style="font-size:18px; color:var(--accent-ink); margin:0;">
+            Fibra ottica<br/>+ contratto mensile<br/>+ zero servizi extra<br/>= <em>candidato al churn</em>.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">03 · Profili</span><span class="pageno">13</span></div>
+  </div>
+</section>
+
+<!-- =================== 14 · CORRELAZIONI =================== -->
+<section data-screen-label="14 Correlazioni">
+  <div class="slide soft">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">03</span><span class="sep">/</span><span>PROFILI</span></div>
+      <div class="brand">PULIZIA TECNICA · CORRELAZIONI &amp; OUTLIER</div>
+    </div>
+
+    <h1 class="title">Variabili gemelle e outlier reali.</h1>
+    <h2 class="subtitle">Abbiamo eliminato variabili praticamente identiche e mantenuto gli outlier che rappresentano clienti veri.</h2>
+
+    <div class="row gap-24" style="margin-top: 36px;">
+      <div class="col" style="flex: 1.2;">
+        <div class="chart">
+          <div class="head">
+            <span class="tag">◇ Heatmap correlazioni · 8 variabili chiave</span>
+            <span class="src">// US-10 · Pearson</span>
+          </div>
+          <img src="img/corr_heatmap.svg" alt="Heatmap delle correlazioni tra le variabili numeriche chiave" style="height: 660px; max-height: none; object-fit: contain;"/>
+          <div class="cap">Le coppie cerchiate in rosso (Total Charges ↔ Total Revenue, r=0,97) sono ridondanti: una sola basta.</div>
+        </div>
+      </div>
+
+      <div class="col" style="max-width: 460px;">
+        <div class="panel">
+          <div class="panel-label">◇ COPPIE RIMOSSE</div>
+          <table class="dash" style="margin-top:12px;">
+            <thead>
+              <tr><th>Coppia</th><th class="num" style="text-align:right;">r</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><b>Partner</b> ↔ <b>Married</b></td><td class="num" style="color:var(--warn);">1.00</td></tr>
+              <tr><td><b>Total Charges</b> ↔ <b>Total Revenue</b></td><td class="num" style="color:var(--warn);">0.97</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel" style="margin-top:14px;">
+          <div class="panel-label">◆ OUTLIER · DECISIONE</div>
+          <p class="panel-body" style="margin-top:10px; font-size:24px; margin-bottom:10px ;">
+            Testati 4 metodi (z-score, IQR, DBSCAN, Isolation Forest). <span class="pill good"><span class="icon-check" style="width:14px;height:14px;font-size:24px;">✓</span> mantenuti</span> — sono clienti reali, non errori.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">03 · Profili</span><span class="pageno">14</span></div>
+  </div>
+</section>
+
+<!-- =================== 15 · DIVIDER 04 =================== -->
+<section data-screen-label="15 Divider 04">
+  <div class="divider">
+    <div class="section-tag"><span class="num">04</span><span class="sep">/</span><span>I MODELLI</span></div>
+    <div>
+      <div class="big"><span class="accent">5</span> modelli, <span class="accent">3</span> filosofie diverse.</div>
+      <div class="lead">Dal classificatore stupido alla rete neurale. Ognuno ragiona in modo diverso. Vediamo come.</div>
+    </div>
+    <div class="divider-foot">
+      <div class="toc">
+        <span>01 PROBLEMA</span>
+        <span>02 DATI</span>
+        <span>03 PROFILI</span>
+        <span class="cur">04 MODELLI</span>
+        <span>05 RISULTATI</span>
+        <span>06 ETICA</span>
+      </div>
+      <div>15</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 16 · DECISION TREE =================== -->
+<section data-screen-label="16 Decision Tree">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">04</span><span class="sep">/</span><span>MODELLI</span></div>
+      <div class="brand">DECISION TREE · UNA CATENA DI DOMANDE</div>
+    </div>
+
+    <h1 class="title">Una serie di domande sì / no.</h1>
+    <h2 class="subtitle">Come un medico in diagnosi: ogni nodo è una domanda, ogni foglia una predizione. Il vantaggio enorme: si <em>legge</em>.</h2>
+
+    <div class="row gap-32" style="margin-top: 40px;">
+      <div class="col" style="flex:1.3;">
+        <div class="panel-label">◆ ESEMPIO SEMPLIFICATO</div>
+        <div class="tree" style="margin-top:18px;">
+          <div class="node q" style="width:50%; margin: 0 auto;">contratto = mensile?</div>
+          <div class="branch-label" style="display:grid; grid-template-columns:1fr 1fr;">
+            <span>SÌ</span><span>NO</span>
+          </div>
+          <div class="branches">
+            <div class="node q">monthly_charge &gt; 80€?</div>
+            <div class="node stay">→ RIMASTO</div>
+          </div>
+          <div class="branch-label" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; margin-top:4px;">
+            <span>SÌ</span><span>NO</span><span></span><span></span>
+          </div>
+          <div class="branches">
+            <div class="branches" style="grid-template-columns:1fr 1fr;">
+              <div class="node churn">→ CHURN</div>
+              <div class="node q">tenure &lt; 12 mesi?</div>
+            </div>
+            <div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="max-width: 380px;">
+        <div class="panel accent">
+          <div class="panel-label" style="color:var(--accent-ink);">◆ PERCHÉ PIACE</div>
+          <ul class="clean" style="margin-top:8px; gap:14px;">
+            <li><span style="color:var(--accent-ink); font-size:15px;"><b>Trasparente</b> — il manager legge le regole.</span></li>
+            <li><span style="color:var(--accent-ink); font-size:15px;"><b>Robusto</b> — non serve scalare le feature.</span></li>
+            <li><span style="color:var(--accent-ink); font-size:15px;"><b>Veloce</b> — addestra in secondi.</span></li>
+          </ul>
+        </div>
+        <div class="panel" style="margin-top:14px;">
+          <div class="panel-label">◇ CONFIGURAZIONE</div>
+          <p class="panel-body" style="font-family:var(--font-mono); font-size:13px;">
+            max_depth = 5<br/>
+            class_weight = balanced<br/>
+            features = top 10 (SelectKBest)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">04 · Modelli</span><span class="pageno">16</span></div>
+  </div>
+</section>
+
+<!-- =================== 17 · RANDOM FOREST =================== -->
+<section data-screen-label="17 Random Forest">
+  <div class="slide soft">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">04</span><span class="sep">/</span><span>MODELLI</span></div>
+      <div class="brand">RANDOM FOREST · LA SAGGEZZA DELLA FOLLA</div>
+    </div>
+
+    <h1 class="title">Cento alberi votano. Vince la maggioranza.</h1>
+    <h2 class="subtitle">Ogni albero vede un campione diverso e un sottoinsieme diverso di variabili. Le previsioni si stabilizzano nella media.</h2>
+
+    <div class="row gap-32" style="margin-top: 44px;">
+      <div class="col" style="flex:1.4;">
+        <div class="panel-label">◇ 100 SONDAGGI INDIPENDENTI</div>
+        <div style="margin-top:20px; display:grid; grid-template-columns:repeat(20, 1fr); gap:6px; max-width:520px;">
+          <!-- 100 mini "trees" with majority voting illustration -->
+          <script>/* placeholder grid */</script>
+        </div>
+        <div id="rf-grid" style="display:grid; grid-template-columns:repeat(20, 1fr); gap:5px; max-width:540px; margin-top:8px;"></div>
+        <script>
+          (function(){
+            var c = document.getElementById('rf-grid');
+            if (!c) return;
+            var n = 100;
+            var html = '';
+            for (var i = 0; i < n; i++) {
+              // 65% vote churn (purple), 35% stay (light)
+              var churn = Math.random() < 0.62;
+              var color = churn ? '#6941C6' : '#E9D7FE';
+              html += '<div style="aspect-ratio:1; background:'+color+'; border-radius:3px;"></div>';
+            }
+            c.innerHTML = html;
+          })();
+        </script>
+        <div style="margin-top:18px; font-family:var(--font-mono); font-size:11px; color:var(--muted);">
+          // 62 ALBERI VOTANO CHURN · 38 VOTANO RIMASTO → DECISIONE: CHURN
+        </div>
+      </div>
+
+      <div class="col" style="max-width: 380px;">
+        <div class="panel">
+          <div class="panel-label">◆ TRADE-OFF</div>
+          <div class="kpi-grid cols-2" style="margin-top:14px; gap:10px;">
+            <div class="kpi soft" style="min-height:80px; padding:14px;">
+              <div class="kpi-label">+ Stabile</div>
+              <div class="kpi-sub" style="font-size:12px;">Meno overfit</div>
+            </div>
+            <div class="kpi soft" style="min-height:80px; padding:14px;">
+              <div class="kpi-label">− Opaco</div>
+              <div class="kpi-sub" style="font-size:12px;">Non leggibile</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel accent" style="margin-top:14px;">
+          <div class="panel-label" style="color:var(--accent-ink);">◇ ANALOGIA</div>
+          <p class="panel-body" style="color:var(--accent-ink); font-size:15px;">
+            «Cento sondaggi indipendenti su cento campioni diversi. Il singolo sondaggio sbaglia. La <em>media</em> di cento è quasi sempre più affidabile.»
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">04 · Modelli</span><span class="pageno">17</span></div>
+  </div>
+</section>
+
+<!-- =================== 18 · MLP =================== -->
+<section data-screen-label="18 MLP">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">04</span><span class="sep">/</span><span>MODELLI</span></div>
+      <div class="brand">MLP · RETE NEURALE COMPATTA</div>
+    </div>
+
+    <h1 class="title">La rete neurale, in piccolo.</h1>
+    <h2 class="subtitle">Stessa famiglia di tecnologie che fa funzionare ChatGPT. Qui in versione minimalista, due strati nascosti.</h2>
+
+    <div class="row gap-32" style="margin-top: 40px;">
+      <div class="col" style="flex:1.4;">
+        <div class="panel-label">◇ ARCHITETTURA</div>
+        <div style="margin-top:24px; display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:24px; align-items:center;">
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--muted); margin-bottom:8px;">INPUT</div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <div style="height:8px; background:var(--line-2); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--line-2); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--line-2); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--line-2); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--line-2); border-radius:2px;"></div>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--ink-2); margin-top:10px;">10 feature</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--muted); margin-bottom:8px;">HIDDEN 1</div>
+            <div style="display:grid; grid-template-columns:repeat(8, 1fr); gap:4px;">
+              <div></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px; opacity:0.4;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px; opacity:0.6;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px; opacity:0.6;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px; opacity:0.4;"></div>
+              <div></div>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--ink-2); margin-top:10px;">64 neuroni</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--muted); margin-bottom:8px;">HIDDEN 2</div>
+            <div style="display:grid; grid-template-columns:repeat(6, 1fr); gap:4px;">
+              <div style="height:8px; background:var(--accent); border-radius:2px; opacity:0.5;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px;"></div>
+              <div style="height:8px; background:var(--accent); border-radius:2px; opacity:0.5;"></div>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--ink-2); margin-top:10px;">32 neuroni</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--muted); margin-bottom:8px;">OUTPUT</div>
+            <div style="height:32px; background:var(--ink); border-radius:4px; display:flex; align-items:center; justify-content:center; color:#fff; font-family:var(--font-mono); font-size:11px;">P(churn)</div>
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--ink-2); margin-top:10px;">0–1</div>
+          </div>
+        </div>
+        <div style="margin-top:32px; font-family:var(--font-mono); font-size:11px; color:var(--muted);">
+          // EARLY STOPPING · TRAINING FERMATO A 24 EPOCHE
+        </div>
+      </div>
+
+      <div class="col" style="max-width: 360px;">
+        <div class="panel" style="border-color:#FECDCA; background:var(--warn-soft);">
+          <div class="panel-label" style="color:var(--warn);"><span class="icon-x">!</span> LIMITE TECNICO</div>
+          <p class="panel-body" style="color:#B42318; font-size:15px;">
+            <code style="font-family:var(--font-mono); font-size:13px; color:#7A271A;">MLPClassifier</code> di scikit-learn <b>non supporta</b> <code style="font-family:var(--font-mono); font-size:13px; color:#7A271A;">class_weight</code>: non compensa lo sbilanciamento.
+          </p>
+          <p class="panel-body" style="color:#B42318; font-size:14px; margin-top:10px;">
+            Risultato: bravo a riconoscere chi resta, meno bravo a riconoscere chi se ne va — l'opposto di ciò che ci serve.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">04 · Modelli</span><span class="pageno">18</span></div>
+  </div>
+</section>
+
+<!-- =================== 19 · DIVIDER 05 =================== -->
+<section data-screen-label="19 Divider 05">
+  <div class="divider">
+    <div class="section-tag"><span class="num">05</span><span class="sep">/</span><span>RISULTATI</span></div>
+    <div>
+      <div class="big">Il vincitore è il <span class="accent">più semplice</span>.</div>
+      <div class="lead">Decision Tree con max_depth = 5. Macro F1 di 0.764, recall 89% sui clienti che davvero stanno per andarsene.</div>
+    </div>
+    <div class="divider-foot">
+      <div class="toc">
+        <span>01 PROBLEMA</span>
+        <span>02 DATI</span>
+        <span>03 PROFILI</span>
+        <span>04 MODELLI</span>
+        <span class="cur">05 RISULTATI</span>
+        <span>06 ETICA</span>
+      </div>
+      <div>19</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 20 · TABELLA RISULTATI =================== -->
+<section data-screen-label="20 Tabella risultati">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">05</span><span class="sep">/</span><span>RISULTATI</span></div>
+      <div class="brand">CONFRONTO MODELLI · TEST SET (n=1.409)</div>
+    </div>
+
+    <h1 class="title">La classifica finale.</h1>
+
+    <div style="margin-top: 36px;">
+      <table class="dash">
+        <thead>
+          <tr>
+            <th>Modello</th>
+            <th class="num" style="text-align:right;">Precision (churn)</th>
+            <th class="num" style="text-align:right;">Recall (churn)</th>
+            <th class="num" style="text-align:right;">F1 (churn)</th>
+            <th class="num" style="text-align:right;">Macro F1</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="first">Baseline (DummyClassifier)</td>
+            <td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.42</td>
+          </tr>
+          <tr>
+            <td class="first">Logistic Regression</td>
+            <td class="num">0.56</td><td class="num">0.87</td><td class="num">0.68</td><td class="num">0.76</td>
+          </tr>
+          <tr class="winner">
+            <td class="first">Decision Tree (max_depth=5) <span class="winner-flag">BEST</span></td>
+            <td class="num">0.56</td><td class="num">0.89</td><td class="num">0.69</td><td class="num">0.764</td>
+          </tr>
+          <tr>
+            <td class="first">Random Forest (100 alberi)</td>
+            <td class="num">0.67</td><td class="num">0.58</td><td class="num">0.63</td><td class="num">0.75</td>
+          </tr>
+          <tr>
+            <td class="first">MLP (64-32, early stopping)</td>
+            <td class="num">0.70</td><td class="num">0.56</td><td class="num">0.62</td><td class="num">0.75</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row gap-16" style="margin-top: 24px;">
+      <div class="col" style="flex: 1.3;">
+        <div class="panel accent" style="margin-bottom:12px;">
+          <div class="panel-label" style="color:var(--accent-ink);">◆ PERCHÉ VINCE IL DECISION TREE</div>
+          <p class="panel-body" style="color:var(--accent-ink); margin-top:6px;">
+            Recall <b>0.89</b> sui churned: su 100 clienti che stanno per andarsene, ne intercetta 89. Per il marketing, è la metrica più importante.
+          </p>
+        </div>
+        <div class="panel">
+          <div class="panel-label">◇ TRADE-OFF</div>
+          <p class="panel-body" style="margin-top:6px;">Random Forest e MLP hanno <b>precision</b> più alta — meno falsi allarmi — ma perdono troppi clienti veri (recall basso).</p>
+        </div>
+      </div>
+      <div class="col" style="max-width: 360px;">
+        <div class="chart">
+          <div class="head">
+            <span class="tag">◆ Confusion matrix · DT</span>
+            <span class="src">// test set · n=1.409</span>
+          </div>
+          <svg viewBox="0 0 320 280" style="width:100%; height:auto;" role="img" aria-label="Confusion matrix Decision Tree">
+            <!-- Predicted axis label top -->
+            <text x="160" y="14" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#98A2B3" letter-spacing="0.08em">PREDETTO</text>
+            <text x="125" y="32" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#344054">Rimasto</text>
+            <text x="225" y="32" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#344054">Churned</text>
+            <!-- True axis label left, rotated -->
+            <text x="14" y="140" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#98A2B3" letter-spacing="0.08em" transform="rotate(-90 14 140)">REALE</text>
+            <text x="64" y="92" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">Rimasto</text>
+            <text x="64" y="172" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">Churned</text>
+            <!-- Cells: TN=776, FP=259, FN=41, TP=333 (totals: row0=1035, row1=374) -->
+            <!-- TN -->
+            <rect x="75" y="50" width="100" height="80" fill="#6941C6"/>
+            <text x="125" y="86" text-anchor="middle" font-family="Inter,sans-serif" font-size="22" fill="#FFFFFF" font-weight="700">776</text>
+            <text x="125" y="106" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="rgba(255,255,255,0.75)" letter-spacing="0.06em">TRUE NEG</text>
+            <text x="125" y="120" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="rgba(255,255,255,0.75)">75%</text>
+            <!-- FP -->
+            <rect x="175" y="50" width="100" height="80" fill="#E9D7FE"/>
+            <text x="225" y="86" text-anchor="middle" font-family="Inter,sans-serif" font-size="22" fill="#53389E" font-weight="700">259</text>
+            <text x="225" y="106" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#7E45BD" letter-spacing="0.06em">FALSE POS</text>
+            <text x="225" y="120" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#7E45BD">25%</text>
+            <!-- FN -->
+            <rect x="75" y="130" width="100" height="80" fill="#F4EBFF"/>
+            <text x="125" y="166" text-anchor="middle" font-family="Inter,sans-serif" font-size="22" fill="#53389E" font-weight="700">41</text>
+            <text x="125" y="186" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#7E45BD" letter-spacing="0.06em">FALSE NEG</text>
+            <text x="125" y="200" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#7E45BD">11%</text>
+            <!-- TP -->
+            <rect x="175" y="130" width="100" height="80" fill="#6941C6"/>
+            <text x="225" y="166" text-anchor="middle" font-family="Inter,sans-serif" font-size="22" fill="#FFFFFF" font-weight="700">333</text>
+            <text x="225" y="186" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="rgba(255,255,255,0.75)" letter-spacing="0.06em">TRUE POS</text>
+            <text x="225" y="200" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="rgba(255,255,255,0.75)">89%</text>
+            <!-- Grid lines -->
+            <rect x="75" y="50" width="200" height="160" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="175" y1="50" x2="175" y2="210" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="75" y1="130" x2="275" y2="130" stroke="#FFFFFF" stroke-width="2"/>
+            <!-- Recall callout -->
+            <text x="160" y="240" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" fill="#101828" font-weight="600">Recall churn = 333 / 374 = 89%</text>
+            <text x="160" y="258" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#667085">// solo 41 churn veri ci sfuggono</text>
+          </svg>
+          <div class="cap">Diagonale principale = predizioni corrette. Il modello sbaglia di più sui falsi positivi (25%), ma cattura quasi tutti i veri churn.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">05 · Risultati</span><span class="pageno">20</span></div>
+  </div>
+</section>
+
+<!-- =================== 21 · FEATURE IMPORTANCE =================== -->
+<section data-screen-label="21 Feature importance">
+  <div class="slide soft">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">05</span><span class="sep">/</span><span>RISULTATI</span></div>
+      <div class="brand">FEATURE IMPORTANCE · DECISION TREE</div>
+    </div>
+
+    <h1 class="title">Una variabile sola pesa il 57%.</h1>
+    <h2 class="subtitle">Il modello vincitore concentra quasi metà della sua decisione su un singolo segnale: il tipo di contratto.</h2>
+
+    <div class="row gap-32" style="margin-top: 40px;">
+      <div class="col" style="flex:1.5;">
+        <div class="bars">
+          <div class="bar-row" style="grid-template-columns: 240px 1fr 70px;">
+            <div class="label"><b>contract_Month-to-Month</b></div>
+            <div class="bar-track" style="height:24px;"><div class="bar-fill" style="width:57%; height:100%;"></div></div>
+            <div class="num" style="font-weight:700; color:var(--ink);">57%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 240px 1fr 70px;">
+            <div class="label">num_referrals</div>
+            <div class="bar-track" style="height:24px;"><div class="bar-fill" style="width:17%; height:100%;"></div></div>
+            <div class="num">17%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 240px 1fr 70px;">
+            <div class="label">num_dependents</div>
+            <div class="bar-track" style="height:24px;"><div class="bar-fill" style="width:7%; height:100%;"></div></div>
+            <div class="num">7%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 240px 1fr 70px;">
+            <div class="label">internet_type_Fiber Optic</div>
+            <div class="bar-track" style="height:24px;"><div class="bar-fill" style="width:6%; height:100%;"></div></div>
+            <div class="num">6%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 240px 1fr 70px;">
+            <div class="label muted">altre 4 feature</div>
+            <div class="bar-track" style="height:24px;"><div class="bar-fill muted" style="width:13%; height:100%;"></div></div>
+            <div class="num">13%</div>
+          </div>
+          <div class="bar-row" style="grid-template-columns: 240px 1fr 70px;">
+            <div class="label muted">2 feature mai usate</div>
+            <div class="bar-track" style="height:24px;"><div class="bar-fill" style="width:0%; height:100%;"></div></div>
+            <div class="num" style="color:var(--muted-2);">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col" style="max-width: 380px;">
+        <div class="chart">
+          <div class="head">
+            <span class="tag">◇ Curva di overfitting · DT</span>
+            <span class="src">// max_depth · Macro F1</span>
+          </div>
+          <svg viewBox="0 0 360 240" style="width:100%; height:auto;" role="img" aria-label="Curva accuracy train vs validation al variare di max_depth">
+            <!-- Plot area: x [40..340] (300 wide), y [20..180] (160 tall). y-domain 0.70 to 1.00 → 30 units = 160px → 1pt = 5.33 -->
+            <!-- Grid -->
+            <g font-family="JetBrains Mono,monospace" font-size="10" fill="#98A2B3">
+              <line x1="40" y1="20" x2="340" y2="20" stroke="#F2F4F7"/><text x="34" y="24" text-anchor="end">1.00</text>
+              <line x1="40" y1="60" x2="340" y2="60" stroke="#F2F4F7"/><text x="34" y="64" text-anchor="end">0.93</text>
+              <line x1="40" y1="100" x2="340" y2="100" stroke="#F2F4F7"/><text x="34" y="104" text-anchor="end">0.85</text>
+              <line x1="40" y1="140" x2="340" y2="140" stroke="#F2F4F7"/><text x="34" y="144" text-anchor="end">0.78</text>
+              <line x1="40" y1="180" x2="340" y2="180" stroke="#EAECF0"/><text x="34" y="184" text-anchor="end">0.70</text>
+            </g>
+            <!-- X axis labels at: 2, 3, 5, 7, 10, None positioned at evenly spaced -->
+            <g font-family="JetBrains Mono,monospace" font-size="10" fill="#667085">
+              <text x="65" y="200" text-anchor="middle">2</text>
+              <text x="120" y="200" text-anchor="middle">3</text>
+              <text x="175" y="200" text-anchor="middle">5</text>
+              <text x="230" y="200" text-anchor="middle">7</text>
+              <text x="285" y="200" text-anchor="middle">10</text>
+              <text x="325" y="200" text-anchor="middle">None</text>
+            </g>
+            <text x="190" y="220" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#344054">max_depth</text>
+            <!-- Sweet spot band at depth=5 -->
+            <rect x="160" y="20" width="30" height="160" fill="#F4EBFF" opacity="0.6"/>
+            <text x="175" y="13" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6941C6" font-weight="600" letter-spacing="0.08em">SWEET SPOT</text>
+            <!-- Train curve: depth 2,3,5,7,10,None  values 0.72,0.72,0.756,0.79,0.823,1.00 -->
+            <!-- y = 180 - (v - 0.70) / 0.30 * 160 -->
+            <!-- 0.72 → 180-10.67=169.33 ; 0.756→180-29.87=150.13 ; 0.79→180-48=132 ; 0.823→180-65.6=114.4 ; 1.00→180-160=20 -->
+            <polyline points="65,169 120,169 175,150 230,132 285,114 325,20"
+                      fill="none" stroke="#98A2B3" stroke-width="2" stroke-dasharray="5 4"/>
+            <!-- Test curve: 0.74,0.74,0.764,0.768,0.748,0.722 -->
+            <!-- 0.74→180-21.33=158.67 ; 0.764→180-34.13=145.87 ; 0.768→180-36.27=143.73 ; 0.748→180-25.6=154.4 ; 0.722→180-11.73=168.27 -->
+            <polyline points="65,159 120,159 175,146 230,144 285,154 325,168"
+                      fill="none" stroke="#6941C6" stroke-width="2.5"/>
+            <!-- Markers -->
+            <g fill="#FFFFFF" stroke="#98A2B3" stroke-width="2">
+              <circle cx="65" cy="169" r="3.5"/><circle cx="120" cy="169" r="3.5"/><circle cx="175" cy="150" r="3.5"/>
+              <circle cx="230" cy="132" r="3.5"/><circle cx="285" cy="114" r="3.5"/><circle cx="325" cy="20" r="3.5"/>
+            </g>
+            <g fill="#6941C6" stroke="#FFFFFF" stroke-width="1.5">
+              <circle cx="65" cy="159" r="4"/><circle cx="120" cy="159" r="4"/><circle cx="175" cy="146" r="4.5"/>
+              <circle cx="230" cy="144" r="4"/><circle cx="285" cy="154" r="4"/><circle cx="325" cy="168" r="4"/>
+            </g>
+            <!-- Best test marker callout at depth=5 -->
+            <text x="175" y="138" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#53389E" font-weight="600">0.764</text>
+            <!-- Legend -->
+            <g transform="translate(50 36)" font-family="Inter,sans-serif" font-size="11" fill="#344054">
+              <line x1="0" y1="0" x2="20" y2="0" stroke="#98A2B3" stroke-width="2" stroke-dasharray="5 4"/>
+              <circle cx="10" cy="0" r="3.5" fill="#FFFFFF" stroke="#98A2B3" stroke-width="2"/>
+              <text x="26" y="4">Train</text>
+              <line x1="80" y1="0" x2="100" y2="0" stroke="#6941C6" stroke-width="2.5"/>
+              <circle cx="90" cy="0" r="4" fill="#6941C6" stroke="#FFFFFF" stroke-width="1.5"/>
+              <text x="106" y="4">Test</text>
+            </g>
+          </svg>
+          <div class="cap">A profondità 5 train e test viaggiano insieme. Oltre, l'albero memorizza il training: <b>max_depth=5</b> è il punto di equilibrio.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">05 · Risultati</span><span class="pageno">21</span></div>
+  </div>
+</section>
+
+<!-- =================== 22 · FEATURE SELECTION =================== -->
+<section data-screen-label="22 Selezione feature">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">05</span><span class="sep">/</span><span>RISULTATI</span></div>
+      <div class="brand">US-18 · CONFRONTO METODI DI SELEZIONE</div>
+    </div>
+
+    <h1 class="title">Tre metodi, stesso verdetto.</h1>
+    <h2 class="subtitle">SelectKBest, Stepwise Forward e Stepwise Backward concordano sulle variabili dominanti. Il segnale nei dati è robusto.</h2>
+
+    <div style="margin-top: 36px;">
+      <table class="dash">
+        <thead>
+          <tr>
+            <th>Variabile</th>
+            <th>SelectKBest</th>
+            <th>Stepwise Forward</th>
+            <th>Stepwise Backward</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="first">contract_Month-to-Month</td><td><span class="pill accent">✓ TOP</span></td><td><span class="pill accent">✓ TOP</span></td><td><span class="pill accent">✓ TOP</span></td></tr>
+          <tr><td class="first">tenure_months</td><td><span class="pill accent">✓ TOP</span></td><td><span class="pill accent">✓ TOP</span></td><td><span class="pill accent">✓ TOP</span></td></tr>
+          <tr><td class="first">monthly_charge</td><td><span class="pill good">✓</span></td><td><span class="pill good">✓</span></td><td><span class="pill good">✓</span></td></tr>
+          <tr><td class="first">internet_type_Fiber Optic</td><td><span class="pill good">✓</span></td><td><span class="pill good">✓</span></td><td><span class="pill good">✓</span></td></tr>
+          <tr><td class="first">num_referrals</td><td><span class="pill good">✓</span></td><td><span class="pill good">✓</span></td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row gap-16" style="margin-top: 24px;">
+      <div class="col" style="flex:1.2;">
+        <div class="panel" style="margin-bottom:12px;">
+          <div class="panel-label">◇ DIFFERENZA CHIAVE</div>
+          <p class="panel-body" style="margin-top:6px;">
+            <b>SelectKBest</b> valuta le feature una alla volta. <b>Stepwise</b> le valuta in <em>combinazione</em>: aggiunge/rimuove gradualmente, tenendo conto delle interazioni.
+          </p>
+        </div>
+        <div class="panel accent">
+          <div class="panel-label" style="color:var(--accent-ink);">◆ COSA CI DICE</div>
+          <p class="panel-body" style="color:var(--accent-ink); margin-top:6px;">
+            La concordanza dei tre metodi è la firma di un segnale forte: contratto, tenure e costo guidano il churn, indipendentemente da come le selezioni.
+          </p>
+        </div>
+      </div>
+      <div class="col" style="max-width: 380px;">
+        <div class="chart">
+          <div class="head">
+            <span class="tag">◇ Confusion matrix · US-18 · 3 metodi a confronto</span>
+            <span class="src">// Logistic Regression</span>
+          </div>
+          <svg viewBox="0 0 480 240" style="width:100%; height:auto;" role="img" aria-label="Confronto matrici di confusione: SelectKBest, Stepwise Forward, Stepwise Backward">
+            <!-- Grid: 3 panels at x=0,160,320 each 140 wide. -->
+            <g font-family="Inter,sans-serif" font-size="11">
+              <!-- Panel 1: SelectKBest 782/253/50/324 -->
+              <text x="70" y="14" text-anchor="middle" font-weight="600" fill="#101828">SelectKBest</text>
+              <text x="70" y="30" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6941C6" letter-spacing="0.06em">RECALL 87%</text>
+              <rect x="20" y="40" width="50" height="60" fill="#6941C6"/>
+              <text x="45" y="74" text-anchor="middle" font-size="14" fill="#FFFFFF" font-weight="700">782</text>
+              <rect x="70" y="40" width="50" height="60" fill="#E9D7FE"/>
+              <text x="95" y="74" text-anchor="middle" font-size="14" fill="#53389E" font-weight="700">253</text>
+              <rect x="20" y="100" width="50" height="60" fill="#F4EBFF"/>
+              <text x="45" y="134" text-anchor="middle" font-size="14" fill="#53389E" font-weight="700">50</text>
+              <rect x="70" y="100" width="50" height="60" fill="#6941C6"/>
+              <text x="95" y="134" text-anchor="middle" font-size="14" fill="#FFFFFF" font-weight="700">324</text>
+              <rect x="20" y="40" width="100" height="120" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+              <line x1="70" y1="40" x2="70" y2="160" stroke="#FFFFFF" stroke-width="2"/>
+              <line x1="20" y1="100" x2="120" y2="100" stroke="#FFFFFF" stroke-width="2"/>
+
+              <!-- Panel 2: Stepwise Forward 930/105/273/101 (recall 27% — basso!) -->
+              <text x="230" y="14" text-anchor="middle" font-weight="600" fill="#101828">Stepwise Forward</text>
+              <text x="230" y="30" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#B42318" letter-spacing="0.06em">RECALL 27%</text>
+              <rect x="180" y="40" width="50" height="60" fill="#6941C6"/>
+              <text x="205" y="74" text-anchor="middle" font-size="14" fill="#FFFFFF" font-weight="700">930</text>
+              <rect x="230" y="40" width="50" height="60" fill="#F9F5FF"/>
+              <text x="255" y="74" text-anchor="middle" font-size="14" fill="#53389E" font-weight="700">105</text>
+              <rect x="180" y="100" width="50" height="60" fill="#D6BBFB"/>
+              <text x="205" y="134" text-anchor="middle" font-size="14" fill="#FFFFFF" font-weight="700">273</text>
+              <rect x="230" y="100" width="50" height="60" fill="#F9F5FF"/>
+              <text x="255" y="134" text-anchor="middle" font-size="14" fill="#53389E" font-weight="700">101</text>
+              <rect x="180" y="40" width="100" height="120" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+              <line x1="230" y1="40" x2="230" y2="160" stroke="#FFFFFF" stroke-width="2"/>
+              <line x1="180" y1="100" x2="280" y2="100" stroke="#FFFFFF" stroke-width="2"/>
+
+              <!-- Panel 3: Stepwise Backward 829/206/65/309 -->
+              <text x="390" y="14" text-anchor="middle" font-weight="600" fill="#101828">Stepwise Backward</text>
+              <text x="390" y="30" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6941C6" letter-spacing="0.06em">RECALL 83%</text>
+              <rect x="340" y="40" width="50" height="60" fill="#6941C6"/>
+              <text x="365" y="74" text-anchor="middle" font-size="14" fill="#FFFFFF" font-weight="700">829</text>
+              <rect x="390" y="40" width="50" height="60" fill="#E9D7FE"/>
+              <text x="415" y="74" text-anchor="middle" font-size="14" fill="#53389E" font-weight="700">206</text>
+              <rect x="340" y="100" width="50" height="60" fill="#F4EBFF"/>
+              <text x="365" y="134" text-anchor="middle" font-size="14" fill="#53389E" font-weight="700">65</text>
+              <rect x="390" y="100" width="50" height="60" fill="#6941C6"/>
+              <text x="415" y="134" text-anchor="middle" font-size="14" fill="#FFFFFF" font-weight="700">309</text>
+              <rect x="340" y="40" width="100" height="120" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+              <line x1="390" y1="40" x2="390" y2="160" stroke="#FFFFFF" stroke-width="2"/>
+              <line x1="340" y1="100" x2="440" y2="100" stroke="#FFFFFF" stroke-width="2"/>
+
+              <!-- Common axis labels (bottom) -->
+              <text x="45" y="180" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#98A2B3">rim</text>
+              <text x="95" y="180" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#98A2B3">churn</text>
+              <text x="205" y="180" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#98A2B3">rim</text>
+              <text x="255" y="180" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#98A2B3">churn</text>
+              <text x="365" y="180" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#98A2B3">rim</text>
+              <text x="415" y="180" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#98A2B3">churn</text>
+              <text x="240" y="195" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#667085" letter-spacing="0.06em">PREDETTO</text>
+
+              <!-- Caption -->
+              <text x="240" y="220" text-anchor="middle" font-size="11" fill="#101828" font-weight="600">SelectKBest e Backward intercettano l'87% dei churn — Forward solo il 27%.</text>
+            </g>
+          </svg>
+          <div class="cap">Stesso classificatore (Logistic Regression), tre metodi di selezione. La differenza non è nelle <em>variabili</em> selezionate ma nel <em>numero</em>: Forward ne tiene troppe poche per cogliere il segnale churn.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">05 · Risultati</span><span class="pageno">22</span></div>
+  </div>
+</section>
+
+<!-- =================== 23 · DIVIDER 06 =================== -->
+<section data-screen-label="23 Divider 06">
+  <div class="divider">
+    <div class="section-tag"><span class="num">06</span><span class="sep">/</span><span>RIFLESSIONI</span></div>
+    <div>
+      <div class="big">Un modello buono non è ancora un modello <span class="accent">giusto</span>.</div>
+      <div class="lead">Dove finisce la statistica, inizia la responsabilità.</div>
+    </div>
+    <div class="divider-foot">
+      <div class="toc">
+        <span>01 PROBLEMA</span>
+        <span>02 DATI</span>
+        <span>03 PROFILI</span>
+        <span>04 MODELLI</span>
+        <span>05 RISULTATI</span>
+        <span class="cur">06 ETICA</span>
+      </div>
+      <div>23</div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== 24 · LIMITI =================== -->
+<section data-screen-label="24 Limiti">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">06</span><span class="sep">/</span><span>RIFLESSIONI</span></div>
+      <div class="brand">LIMITI DEL PROGETTO</div>
+    </div>
+
+    <h1 class="title">Tre limiti, dichiarati.</h1>
+
+    <div class="kpi-grid cols-3" style="margin-top: 44px;">
+      <div class="kpi" style="min-height:240px; align-items:flex-start;">
+        <div class="kpi-label" style="color:var(--accent);">01 · DOMINIO</div>
+        <div class="kpi-value" style="font-size:28px; line-height:1.2;">Una sola compagnia,<br/>un solo anno.</div>
+        <div class="kpi-sub" style="font-size:14px;">Modello allenato su clienti californiani in un periodo specifico. Non si trasferisce automaticamente in altri mercati o periodi. Va riallenato.</div>
+      </div>
+      <div class="kpi" style="min-height:240px; align-items:flex-start;">
+        <div class="kpi-label" style="color:var(--accent);">02 · TECNICO</div>
+        <div class="kpi-value" style="font-size:28px; line-height:1.2;">MLP penalizzato<br/>dallo sbilanciamento.</div>
+        <div class="kpi-sub" style="font-size:14px;">scikit-learn non lascia bilanciare le classi. Con oversampling (SMOTE) o un'altra libreria, l'MLP potrebbe migliorare significativamente.</div>
+      </div>
+      <div class="kpi" style="min-height:240px; align-items:flex-start;">
+        <div class="kpi-label" style="color:var(--accent);">03 · INFERENZIALE</div>
+        <div class="kpi-value" style="font-size:28px; line-height:1.2;">Correlazione,<br/>non causalità.</div>
+        <div class="kpi-sub" style="font-size:14px;">Sappiamo CHI è a rischio. Non sappiamo COSA succederebbe se intervenissimo. Per quello servirebbe un esperimento controllato (A/B test).</div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">06 · Riflessioni</span><span class="pageno">24</span></div>
+  </div>
+</section>
+
+<!-- =================== 25 · ETICA =================== -->
+<section data-screen-label="25 Etica">
+  <div class="slide soft">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">06</span><span class="sep">/</span><span>RIFLESSIONI</span></div>
+      <div class="brand">IMPLICAZIONI ETICHE</div>
+    </div>
+
+    <h1 class="title">Premiare chi minaccia, ignorare chi resta?</h1>
+    <h2 class="subtitle">Il modello funziona. La domanda diventa: come lo usiamo, e chi paga il prezzo delle nostre scelte?</h2>
+
+    <div class="row gap-24" style="margin-top: 40px;">
+      <div class="col panel" style="border-left: 3px solid var(--warn);">
+        <div class="panel-label" style="color:var(--warn);"><span class="icon-x">!</span> EQUITÀ DEGLI SCONTI</div>
+        <p class="panel-body" style="margin-top:8px;">
+          Se diamo sconti solo ai clienti a rischio, premiamo chi <em>minaccia</em> di andarsene e penalizziamo chi paga il prezzo pieno per fedeltà. È una pratica diffusa, ma discutibile.
+        </p>
+      </div>
+      <div class="col panel" style="border-left: 3px solid var(--warn);">
+        <div class="panel-label" style="color:var(--warn);"><span class="icon-x">!</span> BIAS STORICI</div>
+        <p class="panel-body" style="margin-top:8px;">
+          Il modello impara dai dati passati. Se in passato certi gruppi hanno ricevuto un servizio peggiore, il modello li classificherà come "a rischio" — e l'azienda agirà su quella base, perpetuando la disuguaglianza.
+        </p>
+      </div>
+      <div class="col panel" style="border-left: 3px solid var(--accent);">
+        <div class="panel-label" style="color:var(--accent-ink);">◆ COSA SERVE</div>
+        <ul class="clean dash" style="margin-top:8px; gap:10px;">
+          <li><span><b>Audit periodici</b> sul rispetto di gruppi sensibili.</span></li>
+          <li><span><b>Trasparenza</b> sul motivo dell'offerta.</span></li>
+          <li><span><b>Politiche</b> di retention <em>universali</em>, non solo reattive.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">06 · Riflessioni</span><span class="pageno">25</span></div>
+  </div>
+</section>
+
+<!-- =================== 26 · APPLICAZIONI =================== -->
+<section data-screen-label="26 Applicazioni">
+  <div class="slide">
+    <div class="slide-header">
+      <div class="section-tag"><span class="num">06</span><span class="sep">/</span><span>RIFLESSIONI</span></div>
+      <div class="brand">APPLICAZIONI REALI</div>
+    </div>
+
+    <h1 class="title">Cosa farebbe, davvero, un'azienda con questo.</h1>
+
+    <div class="kpi-grid cols-3" style="margin-top: 44px;">
+      <div class="kpi soft" style="min-height:230px; align-items:flex-start;">
+        <div class="kpi-label" style="color:var(--accent);">DASHBOARD</div>
+        <div class="kpi-value" style="font-size:24px; line-height:1.2;">Risk score per ogni cliente.</div>
+        <div class="kpi-sub" style="font-size:14px;">Il customer service vede in tempo reale chi è in zona rossa, gialla, verde. Le interazioni difficili partono già contestualizzate.</div>
+      </div>
+      <div class="kpi soft" style="min-height:230px; align-items:flex-start;">
+        <div class="kpi-label" style="color:var(--accent);">RETENTION</div>
+        <div class="kpi-value" style="font-size:24px; line-height:1.2;">Top mille a rischio, ogni mese.</div>
+        <div class="kpi-sub" style="font-size:14px;">Campagne mirate verso il segmento ad alto rischio: telefonata, sconto, upgrade. Misurabili contro un gruppo di controllo.</div>
+      </div>
+      <div class="kpi accent" style="min-height:230px; align-items:flex-start;">
+        <div class="kpi-label">PRODOTTO</div>
+        <div class="kpi-value" style="font-size:24px; line-height:1.2; color:#fff;">Ridisegnare i contratti.</div>
+        <div class="kpi-sub" style="font-size:14px;">Se il mensile è il rischio, l'incentivo è renderlo meno conveniente del biennale. Leva strategica, non tattica.</div>
+      </div>
+    </div>
+
+    <div class="slide-footer"><span class="label">06 · Riflessioni</span><span class="pageno">26</span></div>
+  </div>
+</section>
+
+<!-- =================== 27 · CHIUSURA =================== -->
+<section data-screen-label="27 Chiusura">
+  <div class="closing">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div class="section-tag" style="color:rgba(255,255,255,0.55);">
+        <span class="num" style="color:#B692F6;">07</span>
+        <span class="sep" style="color:rgba(255,255,255,0.25);">/</span>
+        <span>SINTESI</span>
+      </div>
+      <div class="brand" style="color:rgba(255,255,255,0.45);">TELCO-CHURN · DEVELHOPE</div>
+    </div>
+
+    <div>
+      <h1>Tre cose<br/>da <span class="accent">portare a casa</span>.</h1>
+      <p class="lede">In ordine: il segnale, il modello, l'azione.</p>
+
+      <div class="closing-grid">
+        <div class="item">
+          <div class="num">01 · IL SEGNALE</div>
+          <div class="txt">Il churn dipende soprattutto da <b>tipo di contratto</b>, <b>durata della relazione</b> e <b>rapporto qualità-prezzo</b> percepito.</div>
+        </div>
+        <div class="item">
+          <div class="num">02 · IL MODELLO</div>
+          <div class="txt">Vince il <b>Decision Tree</b>: Macro F1 <b>0.764</b>, recall <b>89%</b> sui churned. Semplice, accurato, leggibile.</div>
+        </div>
+        <div class="item">
+          <div class="num">03 · L'AZIONE</div>
+          <div class="txt">La leva di business più forte è <b>convertire i contratti mensili</b> in pluriennali. Lo sconto è tattica; il contratto è strategia.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; font-family:var(--font-mono); font-size:11px; color:rgba(255,255,255,0.45); letter-spacing:0.12em;">
+      <div>
+        Antonio Speranza · Giada Jenny Qalifa · Davide Culò<br/>
+        <span style="color:rgba(255,255,255,0.3);">DEVELHOPE · DATA / IA · TELCO-CHURN</span>
+      </div>
+      <div>GRAZIE · 27</div>
+    </div>
+  </div>
+</section>
+
+</deck-stage>
+
+</body>
+</html>

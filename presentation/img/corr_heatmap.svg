@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 494 450" role="img" aria-label="Heatmap correlazione 8 variabili numeriche chiave">
+<defs><linearGradient id="corrGrad" x1="0" x2="1"><stop offset="0%" stop-color="#FFFFFF"></stop><stop offset="100%" stop-color="#6941C6"></stop></linearGradient></defs>
+<rect x="130" y="16" width="38" height="38" fill="rgb(105,65,198)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="149" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">1.00</text>
+<rect x="168" y="16" width="38" height="38" fill="rgb(218,208,241)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="187" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.25</text>
+<rect x="206" y="16" width="38" height="38" fill="rgb(131,97,208)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="225" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.83</text>
+<rect x="244" y="16" width="38" height="38" fill="rgb(128,94,207)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="263" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.85</text>
+<rect x="282" y="16" width="38" height="38" fill="rgb(206,192,236)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="301" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.33</text>
+<rect x="320" y="16" width="38" height="38" fill="rgb(254,253,254)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="339" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.01</text>
+<rect x="358" y="16" width="38" height="38" fill="rgb(195,179,232)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="377" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.40</text>
+<rect x="396" y="16" width="38" height="38" fill="rgb(198,183,233)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="415" y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.38</text>
+<rect x="130" y="54" width="38" height="38" fill="rgb(218,208,241)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="149" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.25</text>
+<rect x="168" y="54" width="38" height="38" fill="rgb(105,65,198)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="187" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">1.00</text>
+<rect x="206" y="54" width="38" height="38" fill="rgb(158,132,218)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="225" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.65</text>
+<rect x="244" y="54" width="38" height="38" fill="rgb(167,143,221)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="263" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.59</text>
+<rect x="282" y="54" width="38" height="38" fill="rgb(251,249,253)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="301" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.03</text>
+<rect x="320" y="54" width="38" height="38" fill="rgb(234,228,247)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="339" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.14</text>
+<rect x="358" y="54" width="38" height="38" fill="rgb(240,236,249)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="377" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.10</text>
+<rect x="396" y="54" width="38" height="38" fill="rgb(240,236,249)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="415" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.10</text>
+<rect x="130" y="92" width="38" height="38" fill="rgb(131,97,208)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="149" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.83</text>
+<rect x="168" y="92" width="38" height="38" fill="rgb(158,132,218)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="187" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.65</text>
+<rect x="206" y="92" width="38" height="38" fill="rgb(105,65,198)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="225" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">1.00</text>
+<rect x="244" y="92" width="38" height="38" fill="rgb(110,71,200)" stroke="#F04438" stroke-width="2"></rect>
+<text x="263" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.97</text>
+<rect x="282" y="92" width="38" height="38" fill="rgb(218,208,241)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="301" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.25</text>
+<rect x="320" y="92" width="38" height="38" fill="rgb(246,244,252)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="339" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.06</text>
+<rect x="358" y="92" width="38" height="38" fill="rgb(204,190,236)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="377" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.34</text>
+<rect x="396" y="92" width="38" height="38" fill="rgb(207,194,237)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="415" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.32</text>
+<rect x="130" y="130" width="38" height="38" fill="rgb(128,94,207)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="149" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.85</text>
+<rect x="168" y="130" width="38" height="38" fill="rgb(167,143,221)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="187" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.59</text>
+<rect x="206" y="130" width="38" height="38" fill="rgb(110,71,200)" stroke="#F04438" stroke-width="2"></rect>
+<text x="225" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.97</text>
+<rect x="244" y="130" width="38" height="38" fill="rgb(105,65,198)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="263" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">1.00</text>
+<rect x="282" y="130" width="38" height="38" fill="rgb(216,206,240)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="301" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.26</text>
+<rect x="320" y="130" width="38" height="38" fill="rgb(248,246,252)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="339" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.05</text>
+<rect x="358" y="130" width="38" height="38" fill="rgb(203,189,235)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="377" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.35</text>
+<rect x="396" y="130" width="38" height="38" fill="rgb(206,192,236)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="415" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.33</text>
+<rect x="130" y="168" width="38" height="38" fill="rgb(206,192,236)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="149" y="190" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.33</text>
+<rect x="168" y="168" width="38" height="38" fill="rgb(251,249,253)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="187" y="190" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.03</text>
+<rect x="206" y="168" width="38" height="38" fill="rgb(218,208,241)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="225" y="190" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.25</text>
+<rect x="244" y="168" width="38" height="38" fill="rgb(216,206,240)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="263" y="190" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.26</text>
+<rect x="282" y="168" width="38" height="38" fill="rgb(105,65,198)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="301" y="190" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">1.00</text>
+<rect x="320" y="168" width="38" height="38" fill="rgb(254,254,254)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="339" y="190" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">-0.03</text>
+<rect x="358" y="168" width="38" height="38" fill="rgb(237,232,248)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="377" y="190" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.12</text>
+<rect x="396" y="168" width="38" height="38" fill="rgb(155,128,217)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="415" y="190" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.67</text>
+<rect x="130" y="206" width="38" height="38" fill="rgb(254,253,254)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="149" y="228" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.01</text>
+<rect x="168" y="206" width="38" height="38" fill="rgb(234,228,247)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="187" y="228" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.14</text>
+<rect x="206" y="206" width="38" height="38" fill="rgb(246,244,252)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="225" y="228" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.06</text>
+<rect x="244" y="206" width="38" height="38" fill="rgb(248,246,252)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="263" y="228" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.05</text>
+<rect x="282" y="206" width="38" height="38" fill="rgb(254,254,254)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="301" y="228" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">-0.03</text>
+<rect x="320" y="206" width="38" height="38" fill="rgb(105,65,198)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="339" y="228" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">1.00</text>
+<rect x="358" y="206" width="38" height="38" fill="rgb(255,255,255)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="377" y="228" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.00</text>
+<rect x="396" y="206" width="38" height="38" fill="rgb(255,255,255)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="415" y="228" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.00</text>
+<rect x="130" y="244" width="38" height="38" fill="rgb(195,179,232)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="149" y="266" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.40</text>
+<rect x="168" y="244" width="38" height="38" fill="rgb(240,236,249)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="187" y="266" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.10</text>
+<rect x="206" y="244" width="38" height="38" fill="rgb(204,190,236)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="225" y="266" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.34</text>
+<rect x="244" y="244" width="38" height="38" fill="rgb(203,189,235)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="263" y="266" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.35</text>
+<rect x="282" y="244" width="38" height="38" fill="rgb(237,232,248)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="301" y="266" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.12</text>
+<rect x="320" y="244" width="38" height="38" fill="rgb(255,255,255)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="339" y="266" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.00</text>
+<rect x="358" y="244" width="38" height="38" fill="rgb(105,65,198)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="377" y="266" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">1.00</text>
+<rect x="396" y="244" width="38" height="38" fill="rgb(234,228,247)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="415" y="266" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.14</text>
+<rect x="130" y="282" width="38" height="38" fill="rgb(198,183,233)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="149" y="304" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.38</text>
+<rect x="168" y="282" width="38" height="38" fill="rgb(240,236,249)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="187" y="304" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.10</text>
+<rect x="206" y="282" width="38" height="38" fill="rgb(207,194,237)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="225" y="304" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.32</text>
+<rect x="244" y="282" width="38" height="38" fill="rgb(206,192,236)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="263" y="304" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.33</text>
+<rect x="282" y="282" width="38" height="38" fill="rgb(155,128,217)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="301" y="304" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">0.67</text>
+<rect x="320" y="282" width="38" height="38" fill="rgb(255,255,255)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="339" y="304" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.00</text>
+<rect x="358" y="282" width="38" height="38" fill="rgb(234,228,247)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="377" y="304" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#101828" font-weight="400">0.14</text>
+<rect x="396" y="282" width="38" height="38" fill="rgb(105,65,198)" stroke="#FFFFFF" stroke-width="1"></rect>
+<text x="415" y="304" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF" font-weight="600">1.00</text>
+<text x="122" y="38" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">tenure_months</text>
+<text x="122" y="76" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">monthly_charge</text>
+<text x="122" y="114" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">total_charges</text>
+<text x="122" y="152" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">total_revenue</text>
+<text x="122" y="190" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">num_referrals</text>
+<text x="122" y="228" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">age</text>
+<text x="122" y="266" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">cltv</text>
+<text x="122" y="304" text-anchor="end" font-family="Inter,sans-serif" font-size="11" fill="#344054">partner</text>
+<text x="149" y="328" text-anchor="end" transform="rotate(-45 149 328)" font-family="Inter,sans-serif" font-size="11" fill="#344054">tenure_months</text>
+<text x="187" y="328" text-anchor="end" transform="rotate(-45 187 328)" font-family="Inter,sans-serif" font-size="11" fill="#344054">monthly_charge</text>
+<text x="225" y="328" text-anchor="end" transform="rotate(-45 225 328)" font-family="Inter,sans-serif" font-size="11" fill="#344054">total_charges</text>
+<text x="263" y="328" text-anchor="end" transform="rotate(-45 263 328)" font-family="Inter,sans-serif" font-size="11" fill="#344054">total_revenue</text>
+<text x="301" y="328" text-anchor="end" transform="rotate(-45 301 328)" font-family="Inter,sans-serif" font-size="11" fill="#344054">num_referrals</text>
+<text x="339" y="328" text-anchor="end" transform="rotate(-45 339 328)" font-family="Inter,sans-serif" font-size="11" fill="#344054">age</text>
+<text x="377" y="328" text-anchor="end" transform="rotate(-45 377 328)" font-family="Inter,sans-serif" font-size="11" fill="#344054">cltv</text>
+<text x="415" y="328" text-anchor="end" transform="rotate(-45 415 328)" font-family="Inter,sans-serif" font-size="11" fill="#344054">partner</text>
+<rect x="130" y="410" width="200" height="10" fill="url(#corrGrad)" stroke="#D0D5DD"></rect>
+<text x="130" y="434" font-family="Inter,sans-serif" font-size="10" fill="#667085">0</text>
+<text x="330" y="434" text-anchor="end" font-family="Inter,sans-serif" font-size="10" fill="#667085">+1</text>
+<text x="344" y="418" font-family="Inter,sans-serif" font-size="11" fill="#344054">correlazione di Pearson</text>
+<rect x="130" y="446" width="14" height="14" fill="none" stroke="#F04438" stroke-width="2"></rect>
+<text x="152" y="457" font-family="Inter,sans-serif" font-size="11" fill="#B42318">coppia ridondante (r ≥ 0,95)</text>
+</svg>
