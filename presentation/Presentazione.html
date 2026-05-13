@@ -21,7 +21,7 @@
 
 "Questo è il concetto più importante della metodologia, e lo spieghiamo con un'analogia. Immaginate di studiare per un esame e di avere già le risposte sotto gli occhi. Prendereste trenta. Ma il giorno dopo, all'esame vero, senza foglietto, non sapreste rispondere. Il data leakage è esattamente questo: il modello si allena vedendo informazioni che nella realtà non avrebbe. Sembra bravissimo in laboratorio e poi crolla in produzione. La nostra prima responsabilità è stata identificare ed eliminare queste informazioni 'dal futuro'.",
 
-"Ecco le cinque colonne tossiche che abbiamo eliminato. Churn è la risposta stessa — ovvio. Ma anche Churn Score, Churn Category e Churn Reason esistono solo DOPO che il cliente è andato via: sono compilate dall'azienda a posteriori. Customer Status idem: dice se il cliente è attivo, perso o nuovo. Usarle sarebbe come prevedere chi vincerà la partita guardando il risultato finale. Insieme a queste abbiamo rimosso colonne identificative — Customer ID, dati geografici, Country, State — che non aggiungono potere predittivo, e abbiamo discusso colonne 'grigie' come il Satisfaction Score, che abbiamo deciso di tenere perché è un'informazione disponibile prima dell'abbandono.",
+"Ecco le cinque colonne tossiche che abbiamo eliminato. Churn è la risposta stessa — ovvio. Ma anche Churn Score, Churn Category e Churn Reason esistono solo DOPO che il cliente è andato via: sono compilate dall'azienda a posteriori. Customer Status idem: dice se il cliente è attivo, perso o nuovo. Usarle sarebbe come prevedere chi vincerà la partita guardando il risultato finale. Insieme a queste abbiamo rimosso colonne identificative — Customer ID, dati geografici, Country, State — che non aggiungono potere predittivo, e abbiamo discusso colonne 'grigie' come il Satisfaction Score, che abbiamo deciso di rimuovere perché potrebbe essere raccolto nell'ultimo contatto prima dell'abbandono — un possibile rischio di leakage.",
 
 "Dopo la pulizia restano 7043 righe e una trentina di colonne utili. Nessun duplicato, qualche valore mancante che abbiamo gestito. Abbiamo poi diviso i dati in due parti: l'ottanta per cento per addestrare il modello, il venti per cento — circa 1409 clienti — che il modello non vedrà MAI in fase di allenamento. Sarà il nostro 'esame finale'. La divisione è stratificata, cioè la proporzione tra clienti rimasti e andati via è la stessa nei due gruppi. Questo evita che il test sia per caso più facile o più difficile dell'addestramento.",
 
@@ -1043,7 +1043,7 @@
         <div class="panel-label" style="color:var(--accent-ink);">◇ DECISIONI "GRIGIE"</div>
         <ul class="clean" style="margin-top:18px; gap:32px; flex:1; justify-content:space-evenly;">
           <li style="font-size:22px;">
-            <span><b>Satisfaction Score</b> — <span class="pill good" style="font-size:14px;"><span class="icon-check" style="width:20px;height:20px;font-size:13px;">✓</span> mantenuto</span> · disponibile prima dell'abbandono.</span>
+            <span><b>Satisfaction Score</b> — <span class="pill warn" style="font-size:14px;">× rimosso</span> · rischio leakage: raccolto nell'ultimo contatto prima dell'abbandono.</span>
           </li>
           <li style="font-size:22px;">
             <span><b>City, Zip Code, Lat, Lng</b> — <span class="pill warn" style="font-size:14px;">× rimossi</span> · troppo granulari, rischio overfit.</span>
@@ -2000,7 +2000,7 @@
               <text x="330" y="272" text-anchor="middle" font-size="14" fill="#101828" font-weight="600">SelectKBest e Backward intercettano quasi tutti i churn — Forward solo il 27%.</text>
             </g>
           </svg>
-          <div class="cap" style="font-size:13px;">Stesso classificatore, tre metodi di selezione. Forward tiene troppe poche variabili per cogliere il segnale churn.</div>
+          <div class="cap" style="font-size:13px;">Stesso classificatore, tre metodi di selezione. Forward esclude <b>contract_Month-to-Month</b> — il predittore più importante — e sceglie feature marginali come gender e device_protection_plan. Questo spiega il crollo del Recall al 27%.</div>
         </div>
       </div>
     </div>
