@@ -213,3 +213,5 @@ data/processed/
 # macOS
 .DS_Store
 **/.DS_Store
+presentation/guida_completa_presentazione.html
+telco_churn_project.md
