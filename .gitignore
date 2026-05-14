@@ -209,7 +209,9 @@ __marimo__/
 #Data
 data/raw/
 data/processed/
-.DS_Store
 
-#MacOS
+# macOS
 .DS_Store
+**/.DS_Store
+presentation/guida_completa_presentazione.html
+telco_churn_project.md
